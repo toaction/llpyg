@@ -1,0 +1,14 @@
+# macOS related
+**/.DS_Store
+**/.DS_Store?
+
+# ide related
+**/.vscode/
+**/.idea/
+
+# self
+.gitignore
+
+# test
+**/_test
+**/test
