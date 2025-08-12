@@ -37,17 +37,19 @@ func getSignature(val *py.Object, sym *symbol) string {
 		return ""
 	}
 	// get signature from inspect
-	sig := inspect.Signature(val)
-	if sig != nil {
-		// str(sig) --> c.str --> go.str
-		return c.GoString(sig.Str().CStr())
+	sigFromInspect := inspect.Signature(val)
+	if sigFromInspect != nil {
+		sig := c.GoString(sigFromInspect.Str().CStr())
+		if sig != "(*args, **kwargs)" {
+			return sig
+		}
 	}
 	// get signature from doc
-	signature := extractSignatureFromDoc(sym.Doc, sym.Name)
-	if signature != "" {
-		return signature
+	sigFromDoc := extractSignatureFromDoc(sym.Doc, sym.Name)
+	if sigFromDoc != "" {
+		return sigFromDoc
 	}
-	// identify whether a function or method
+	// Paradigms
 	if inFuncSet(sym.Type) {
 		return "(*args, **kwargs)"
 	}
@@ -57,7 +59,8 @@ func getSignature(val *py.Object, sym *symbol) string {
 
 // moduleName: Python module name
 func pydump(moduleName string) (*module, error) {
-	// import module, const string ******
+	// import module
+	// mod := py.ImportModule(c.Str(moduleName)) // panic: cstr(<string-literal>): invalid arguments
 	mod := py.ImportModule(c.AllocaCStr(moduleName))
 	if mod == nil {
 		return nil, fmt.Errorf("failed to import module: %s", moduleName)
@@ -85,9 +88,9 @@ func pydump(moduleName string) (*module, error) {
 		// doc
 		doc := val.GetAttrString(c.Str("__doc__"))
 		if doc != nil {
-			sym.Doc = c.GoString(doc.CStr())
+			// sym.Doc = c.GoString(doc.CStr())	// panic: signal: segmentation fault
+			sym.Doc = c.GoString(doc.Str().CStr())
 		}
-
 		// signature
 		sym.Sig = getSignature(val, sym)
 		modInstance.Items = append(modInstance.Items, sym)

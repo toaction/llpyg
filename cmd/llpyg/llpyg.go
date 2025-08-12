@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"go/types"
 	"strings"
 	"encoding/json"
 	"path/filepath"
+	"github.com/goplus/gogen"
 )
 
 // libName to module name mapping
@@ -17,9 +19,9 @@ var libMainModule = map[string]string{
 }
 
 type Config struct {
-	Name 		string `json:"name"`
-	LibName 	string `json:"libName"`
-	LibVersion 	string `json:"libVersion"`
+	Name 		string `json:"name"`			// go module name
+	LibName 	string `json:"libName"`			// Python library name
+	LibVersion 	string `json:"libVersion"`		// Python library version
 }
 
 
@@ -31,7 +33,7 @@ type symbol struct {
 }
 
 type module struct {
-	Name  string    `json:"name"`
+	Name  string    `json:"name"`		// python module name
 	Items []*symbol `json:"items"`
 }
 
@@ -210,7 +212,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Printf("Python library (%s version %s) is ready\n", libName, version)
+	fmt.Printf("Python library (%s %s) is ready\n", libName, version)
 
 	// generate llpyg.cfg
 	moduleName = getMainModuleName(libName)
@@ -240,13 +242,82 @@ func main() {
 
 
 func generateFromConfig(cfg Config, outDir string) {
-	// extract symbol message from the library(main module)
-	moduleName := getMainModuleName(cfg.LibName)
+	// extract symbol message from the python module
+	moduleName := getMainModuleName(cfg.LibName)		// Todo: main module and sub modules
 	mod, err := pydump(moduleName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: failed to dump Python module %s: %v\n", moduleName, err)
 		os.Exit(1)
 	}
+	// write to json file
 	dumpToJson(mod, outDir)
 
+	// generate Go Bindings
+	pkg := gogen.NewPackage("", pkgName(moduleName), nil)
+	pkg.Import("unsafe").MarkForceUsed(pkg)      // import _ "unsafe"
+	py := pkg.Import("github.com/goplus/lib/py") // import "github.com/goplus/lib/py"
+
+	f := func(cb *gogen.CodeBuilder) int {
+		cb.Val("py." + mod.Name)
+		return 1
+	}
+	defs := pkg.NewConstDefs(pkg.Types.Scope())
+	defs.New(f, 0, 0, nil, "LLGoPackage")		// const LLGoPackage = "py.numpy"
+
+	obj := py.Ref("Object").(*types.TypeName).Type().(*types.Named)
+	objPtr := types.NewPointer(obj)
+	ret := types.NewTuple(pkg.NewParam(0, "", objPtr))
+
+	ctx := &context{pkg, obj, objPtr, ret, nil, nil, py}
+	ctx.genMod(pkg, mod)
+	// skips := ctx.skips
+	// if n := len(skips); n > 0 {
+	// 	log.Printf("==> There are %d signatures not found, fetch from doc site\n", n)
+	// 	mod = pysigfetch(pyLib, skips)
+	// 	ctx.skips = skips[:0]
+	// 	ctx.genMod(pkg, &mod)
+	// 	if len(mod.Items) > 0 {
+	// 		skips = ctx.skips
+	// 	}
+	// 	if n := len(skips); n > 0 {
+	// 		log.Printf("==> Skip %d symbols:\n%v\n", n, skips)
+	// 	}
+	// }
+
+	// pkg.WriteTo(os.Stdout)
+}
+
+
+// numpy.random ---> random
+func pkgName(pyModule string) string {
+	if pos := strings.LastIndexByte(pyModule, '.'); pos >= 0 {
+		return pyModule[pos+1:]
+	}
+	return pyModule
+}
+
+
+type context struct {
+	pkg    *gogen.Package
+	obj    *types.Named
+	objPtr *types.Pointer
+	ret    *types.Tuple
+	skips  []element
+	todo   []element
+	py     gogen.PkgRef
+}
+
+type element struct {
+	Name string
+	Type string
+}
+
+func (ctx *context) genMod(pkg *gogen.Package, mod *module) {
+	for _, sym := range mod.Items {
+		if inFuncSet(sym.Type) {				// function or method
+			// ctx.genFunc(pkg, sym)
+			continue
+		}
+		ctx.todo = append(ctx.todo, element{Name: sym.Name, Type: sym.Type})
+	}
 }
