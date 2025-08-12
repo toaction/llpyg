@@ -6,5 +6,8 @@
 **/.vscode/
 **/.idea/
 
+# self
+.gitignore
+
 # test
 **/test
