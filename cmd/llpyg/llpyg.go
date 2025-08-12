@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"go/types"
 	"strings"
 	"encoding/json"
 	"path/filepath"
-	"github.com/goplus/gogen"
 )
 
 // libName to module name mapping
@@ -251,73 +249,4 @@ func generateFromConfig(cfg Config, outDir string) {
 	}
 	// write to json file
 	dumpToJson(mod, outDir)
-
-	// generate Go Bindings
-	pkg := gogen.NewPackage("", pkgName(moduleName), nil)
-	pkg.Import("unsafe").MarkForceUsed(pkg)      // import _ "unsafe"
-	py := pkg.Import("github.com/goplus/lib/py") // import "github.com/goplus/lib/py"
-
-	f := func(cb *gogen.CodeBuilder) int {
-		cb.Val("py." + mod.Name)
-		return 1
-	}
-	defs := pkg.NewConstDefs(pkg.Types.Scope())
-	defs.New(f, 0, 0, nil, "LLGoPackage")		// const LLGoPackage = "py.numpy"
-
-	obj := py.Ref("Object").(*types.TypeName).Type().(*types.Named)
-	objPtr := types.NewPointer(obj)
-	ret := types.NewTuple(pkg.NewParam(0, "", objPtr))
-
-	ctx := &context{pkg, obj, objPtr, ret, nil, nil, py}
-	ctx.genMod(pkg, mod)
-	// skips := ctx.skips
-	// if n := len(skips); n > 0 {
-	// 	log.Printf("==> There are %d signatures not found, fetch from doc site\n", n)
-	// 	mod = pysigfetch(pyLib, skips)
-	// 	ctx.skips = skips[:0]
-	// 	ctx.genMod(pkg, &mod)
-	// 	if len(mod.Items) > 0 {
-	// 		skips = ctx.skips
-	// 	}
-	// 	if n := len(skips); n > 0 {
-	// 		log.Printf("==> Skip %d symbols:\n%v\n", n, skips)
-	// 	}
-	// }
-
-	// pkg.WriteTo(os.Stdout)
-}
-
-
-// numpy.random ---> random
-func pkgName(pyModule string) string {
-	if pos := strings.LastIndexByte(pyModule, '.'); pos >= 0 {
-		return pyModule[pos+1:]
-	}
-	return pyModule
-}
-
-
-type context struct {
-	pkg    *gogen.Package
-	obj    *types.Named
-	objPtr *types.Pointer
-	ret    *types.Tuple
-	skips  []element
-	todo   []element
-	py     gogen.PkgRef
-}
-
-type element struct {
-	Name string
-	Type string
-}
-
-func (ctx *context) genMod(pkg *gogen.Package, mod *module) {
-	for _, sym := range mod.Items {
-		if inFuncSet(sym.Type) {				// function or method
-			// ctx.genFunc(pkg, sym)
-			continue
-		}
-		ctx.todo = append(ctx.todo, element{Name: sym.Name, Type: sym.Type})
-	}
 }
