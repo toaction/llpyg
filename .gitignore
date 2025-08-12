@@ -8,3 +8,7 @@
 
 # self
 .gitignore
+
+# test
+**/_test
+**/test
