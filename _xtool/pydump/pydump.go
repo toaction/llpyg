@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
+	"os"
 	"fmt"
-	"path/filepath"
+	"encoding/json"
 	"strings"
 	"github.com/goplus/lib/c"
 	"github.com/goplus/lib/py"
@@ -11,6 +11,37 @@ import (
 )
 
 
+type symbol struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	Doc  string `json:"doc"`
+	Sig  string `json:"sig"`
+}
+
+type module struct {
+	Name  string    `json:"name"`		// python module name
+	Items []*symbol `json:"items"`
+}
+
+
+var funcSet = []string {
+	"ufunc",
+	"method",
+	"function", 
+	"method-wrapper",
+	"builtin_function_or_method",
+	"_ArrayFunctionDispatcher",
+}
+
+
+func inFuncSet(typeName string) bool {
+	for _, item := range funcSet {
+		if item == typeName {
+			return true
+		}
+	}
+	return false
+}
 
 func extractSignatureFromDoc(doc, funcName string) string {
     lines := strings.SplitN(doc, "\n\n", 2)
@@ -99,19 +130,24 @@ func pydump(moduleName string) (*module, error) {
 }
 
 
-// write module instance into JSON file
-func dumpToJson(mod *module, outDir string) error {
-	// Convert the module to JSON and write it to a file
-	filePath := filepath.Join(outDir, mod.Name + ".json")
-	file, err := createFileWithDirs(filePath)
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: pydump <py_module_name>")
+		return
+	}
+	// get module name from command line argument
+	moduleName := os.Args[1]
+	mod, err := pydump(moduleName)
 	if err != nil {
-		return err
+		fmt.Fprintf(os.Stderr, "error: failed to dump Python module %s: %v\n", moduleName, err)
+		os.Exit(1)
 	}
-	defer file.Close()
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(mod); err != nil {
-		return err
+	// print module information
+	data, err := json.MarshalIndent(mod, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: failed to marshal module to JSON: %v\n", err)
+		os.Exit(1)
 	}
-	return nil
+	
+	fmt.Println(string(data))
 }
