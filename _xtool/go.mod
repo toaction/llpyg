@@ -1,4 +1,4 @@
-module github.com/goplus/llpyg
+module github.com/goplus/llpyg/_xtool
 
 go 1.24.5
 
