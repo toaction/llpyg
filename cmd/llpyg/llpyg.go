@@ -2,80 +2,99 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
-	"go/token"
-	"log"
 	"go/ast"
+	"go/token"
 	"go/types"
+	"log"
+	"os"
 	"os/exec"
-	"strings"
-	"encoding/json"
 	"path/filepath"
+	"strings"
+
 	"github.com/goplus/gogen"
+	_ "github.com/goplus/lib/py"
+	"github.com/goplus/llpyg/tool/pyassets"
+	"github.com/goplus/llpyg/tool/pydyn"
 	"github.com/goplus/llpyg/tool/pyenv"
 	"github.com/goplus/llpyg/tool/pysig"
-	_ "github.com/goplus/lib/py"
 )
 
-
 type Config struct {
-	Name 		string `json:"name"`			// go module name
-	LibName 	string `json:"libName"`			// Python library name
-	LibVersion 	string `json:"libVersion"`		// Python library version
+	Name       string `json:"name"`       // go module name
+	LibName    string `json:"libName"`    // Python library name
+	LibVersion string `json:"libVersion"` // Python library version
 }
 
-
 type symbol struct {
-	Name string `json:"name"`		// python name
+	Name string `json:"name"` // python name
 	Type string `json:"type"`
 	Doc  string `json:"doc"`
 	Sig  string `json:"sig"`
 }
 
 type module struct {
-	Name  string    `json:"name"`		// python module name
+	Name  string    `json:"name"` // python module name
 	Items []*symbol `json:"items"`
 }
-
 
 // numpy==2.3.0  ===> numpy, 2.3.0
 func getNameAndVersion(arg string) (string, string) {
 	parts := strings.SplitN(arg, "==", 2)
-    name := parts[0]
-    version := ""
-    if len(parts) == 2 {
-        version = parts[1]
-    }
+	name := parts[0]
+	version := ""
+	if len(parts) == 2 {
+		version = parts[1]
+	}
 	return name, version
 }
 
 func createFileWithDirs(filePath string) (*os.File, error) {
-    dir := filepath.Dir(filePath)
-    if err := os.MkdirAll(dir, 0755); err != nil {
-        return nil, err
-    }
-    return os.Create(filePath)
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, err
+	}
+	return os.Create(filePath)
 }
-
 
 func writeConfig(cfg Config, outDir string) error {
 	cfgPath := filepath.Join(outDir, "llpyg.cfg")
-    file, err := createFileWithDirs(cfgPath)
-    if err != nil {
-        return fmt.Errorf("error: failed to create file: %w", err)
-    }
-    defer file.Close()
-    encoder := json.NewEncoder(file)
-    encoder.SetIndent("", "  ")
-    if err := encoder.Encode(cfg); err != nil {
-        return fmt.Errorf("error: failed to write configuration: %w", err)
-    }
+	file, err := createFileWithDirs(cfgPath)
+	if err != nil {
+		return fmt.Errorf("error: failed to create file: %w", err)
+	}
+	defer file.Close()
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(cfg); err != nil {
+		return fmt.Errorf("error: failed to write configuration: %w", err)
+	}
 	return nil
 }
 
 func main() {
+
+	// pyHome := pydyn.GetPyHome("/Users/mac/xgo/llpyg/tool/pyassets/python")
+	// fmt.Printf("pyHome: %s\n", pyHome)
+	// if err := pydyn.ApplyEnv(pyHome); err != nil {
+	// 	log.Fatalf("set py env failed: %v\n", err)
+	// }
+	cwd, _ := os.Getwd()
+	pyHome := pydyn.GetPyHome("")
+	if pyHome == "" {
+		var err error
+		// 从二进制内置资产解压一套可用的 Python 到临时目录
+		pyHome, err = pyassets.ExtractToDir(cwd)
+		if err != nil {
+			log.Fatalf("extract embedded python failed: %v\n", err)
+		}
+	}
+	fmt.Printf("pyHome: %s\n", pyHome)
+	if err := pydyn.ApplyEnv(pyHome); err != nil {
+		log.Fatalf("set py env failed: %v\n", err)
+	}
 	// python library name and version, main module name
 	// e.g. scikit-learn==1.0.2 : scikit-learn, 1.0.2, sklearn
 	var libName, libVersion, moduleName string
@@ -87,10 +106,10 @@ func main() {
 	fmt.Printf("llpyg args: output=%s, modName=%s\n", *output, *modName)
 
 	// get library name and version from command line argument
-    if flag.NArg() < 1 {
-        fmt.Fprintln(os.Stderr, "Usage: lpyg [-o outputDir] [-mod modName] pythonLibName[==version]")
-        os.Exit(1)
-    }
+	if flag.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "Usage: lpyg [-o outputDir] [-mod modName] pythonLibName[==version]")
+		os.Exit(1)
+	}
 	libArg := flag.Arg(0)
 	libName, libVersion = getNameAndVersion(libArg)
 	if libName == "" {
@@ -109,8 +128,8 @@ func main() {
 	// generate llpyg.cfg
 	moduleName = pyenv.GetModuleName(libName)
 	cfg := Config{
-		Name: 		strings.ReplaceAll(moduleName, "-", "_"),		// go package name
-		LibName: 	libName,
+		Name:       strings.ReplaceAll(moduleName, "-", "_"), // go package name
+		LibName:    libName,
 		LibVersion: version,
 	}
 	outDir := filepath.Join(*output, cfg.Name)
@@ -130,52 +149,48 @@ func main() {
 	fmt.Printf("LLGo bindings generated successfully in %s\n", outDir)
 }
 
-
 func genGoModule(modName string, outDir string) {
-    if err := os.Chdir(outDir); err != nil {
+	if err := os.Chdir(outDir); err != nil {
 		log.Printf("error: failed to change directory to %s: %v\n", outDir, err)
-        os.Exit(1)
-    }
-    // init go module
-    cmd := exec.Command("go", "mod", "init", modName)
-    cmd.Stdout = os.Stdout
-    cmd.Stderr = os.Stderr
-    if err := cmd.Run(); err != nil {
-        log.Printf("error: failed to initialize Go module: %v\n", err)
-        os.Exit(1)
-    }
-    // go mod tidy
-    tidyCmd := exec.Command("go", "mod", "tidy")
-    tidyCmd.Stdout = os.Stdout
-    tidyCmd.Stderr = os.Stderr
-    if err := tidyCmd.Run(); err != nil {
-        log.Printf("error: failed to run go mod tidy: %v\n", err)
 		os.Exit(1)
-    }
+	}
+	// init go module
+	cmd := exec.Command("go", "mod", "init", modName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Printf("error: failed to initialize Go module: %v\n", err)
+		os.Exit(1)
+	}
+	// go mod tidy
+	tidyCmd := exec.Command("go", "mod", "tidy")
+	tidyCmd.Stdout = os.Stdout
+	tidyCmd.Stderr = os.Stderr
+	if err := tidyCmd.Run(); err != nil {
+		log.Printf("error: failed to run go mod tidy: %v\n", err)
+		os.Exit(1)
+	}
 }
-
 
 func pydump(pyModuleName string) (mod module, err error) {
-    var out bytes.Buffer
-    cmd := exec.Command("pydump", pyModuleName)
-    cmd.Stdout = &out
-    cmd.Stderr = os.Stderr
-    err = cmd.Run()
-    if err != nil {
-        return mod, fmt.Errorf("failed to execute pydump %s command: %v", pyModuleName, err)
-    }
-    err = json.Unmarshal(out.Bytes(), &mod)
-    if err != nil {
-        return mod, fmt.Errorf("failed to unmarshal JSON output: %v", err)
-    }
-    return mod, nil
+	var out bytes.Buffer
+	cmd := exec.Command("pydump", pyModuleName)
+	cmd.Stdout = &out
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		return mod, fmt.Errorf("failed to execute pydump %s command: %v", pyModuleName, err)
+	}
+	err = json.Unmarshal(out.Bytes(), &mod)
+	if err != nil {
+		return mod, fmt.Errorf("failed to unmarshal JSON output: %v", err)
+	}
+	return mod, nil
 }
-
-
 
 func generateFromConfig(cfg Config, outDir string) {
 	// extract symbol message from the python module
-	moduleName := pyenv.GetModuleName(cfg.LibName)		// Todo: main module and sub modules
+	moduleName := pyenv.GetModuleName(cfg.LibName) // Todo: main module and sub modules
 	fmt.Printf("Extracting symbols from Python module %s...\n", moduleName)
 	mod, err := pydump(moduleName)
 	if err != nil {
@@ -193,25 +208,24 @@ func generateFromConfig(cfg Config, outDir string) {
 	genGoBindings(mod, moduleName, outDir)
 }
 
-
 func genGoBindings(mod module, pyModuleName string, outDir string) {
 	// create go package
 	pkgName := getPkgName(pyModuleName)
 	pkg := gogen.NewPackage("", pkgName, nil)
 	pkg.Import("unsafe").MarkForceUsed(pkg)      // import _ "unsafe"
 	py := pkg.Import("github.com/goplus/lib/py") // import "github.com/goplus/lib/py"
-	
+
 	f := func(cb *gogen.CodeBuilder) int {
 		cb.Val("py." + mod.Name)
 		return 1
 	}
 	defs := pkg.NewConstDefs(pkg.Types.Scope())
-	defs.New(f, 0, 0, nil, "LLGoPackage")		// const LLGoPackage = "py.moduleName"
+	defs.New(f, 0, 0, nil, "LLGoPackage") // const LLGoPackage = "py.moduleName"
 
 	obj := py.Ref("Object").(*types.TypeName).Type().(*types.Named)
 	objPtr := types.NewPointer(obj)
 	ret := types.NewTuple(pkg.NewParam(0, "", objPtr))
-	
+
 	// add context
 	ctx := &context{pkg, obj, objPtr, ret, nil, nil, py}
 	ctx.genMod(pkg, &mod)
@@ -222,21 +236,20 @@ func genGoBindings(mod module, pyModuleName string, outDir string) {
 
 	// pkg.WriteTo(os.Stdout)
 	// write to file
-    outputFile := filepath.Join(outDir, pkgName+".go")
-    file, err := createFileWithDirs(outputFile)
-    if err != nil {
-        log.Printf("error: failed to create output file %s: %v\n", outputFile, err)
-        os.Exit(1)
-    }
-    defer file.Close()
+	outputFile := filepath.Join(outDir, pkgName+".go")
+	file, err := createFileWithDirs(outputFile)
+	if err != nil {
+		log.Printf("error: failed to create output file %s: %v\n", outputFile, err)
+		os.Exit(1)
+	}
+	defer file.Close()
 
-    err = pkg.WriteTo(file)
-    if err != nil {
-        log.Printf("error: failed to write Go code to file %s: %v\n", outputFile, err)
-        os.Exit(1)
-    }
+	err = pkg.WriteTo(file)
+	if err != nil {
+		log.Printf("error: failed to write Go code to file %s: %v\n", outputFile, err)
+		os.Exit(1)
+	}
 }
-
 
 // go package name from Python module name
 func getPkgName(pyModuleName string) string {
@@ -245,7 +258,6 @@ func getPkgName(pyModuleName string) string {
 	}
 	return pyModuleName
 }
-
 
 type context struct {
 	pkg    *gogen.Package
@@ -258,15 +270,14 @@ type context struct {
 }
 
 type element struct {
-	name 	string
-	pyType 	string
+	name   string
+	pyType string
 }
 
-
-var funcSet = []string {
+var funcSet = []string{
 	"ufunc",
 	"method",
-	"function", 
+	"function",
 	"method-wrapper",
 	"builtin_function_or_method",
 	"_ArrayFunctionDispatcher",
@@ -296,7 +307,7 @@ func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol) {
 	if len(name) == 0 || name[0] == '_' {
 		return
 	}
-	if symSig == "" {		// no signature
+	if symSig == "" { // no signature
 		ctx.skips = append(ctx.skips, element{name: name, pyType: sym.Type})
 		return
 	}
@@ -340,7 +351,6 @@ func (ctx *context) genParams(pkg *gogen.Package, sig string) (*types.Tuple, boo
 	return types.NewTuple(list...), false
 }
 
-
 // 下划线转驼峰, 若为关键字则末尾添加下划线
 func genName(name string, idxDontTitle int) string {
 	parts := strings.Split(name, "_")
@@ -364,7 +374,6 @@ func (ctx *context) genLinkname(name string, sym *symbol) *ast.Comment {
 	return &ast.Comment{Text: "//go:linkname " + name + " py." + sym.Name}
 }
 
-
 // Generate documentation comments from the symbol's doc string
 func (ctx *context) genDoc(doc string) []*ast.Comment {
 	if doc == "" {
@@ -378,15 +387,12 @@ func (ctx *context) genDoc(doc string) []*ast.Comment {
 	return list
 }
 
-
-
 const (
 	NameValist = "__llgo_va_list"
 )
 
 var (
 	emptyCommentLine = &ast.Comment{Text: "//"}
-	tyAny = types.NewInterfaceType(nil, nil)
-	vArgs = types.NewParam(0, nil, NameValist, types.NewSlice(tyAny))
+	tyAny            = types.NewInterfaceType(nil, nil)
+	vArgs            = types.NewParam(0, nil, NameValist, types.NewSlice(tyAny))
 )
-
