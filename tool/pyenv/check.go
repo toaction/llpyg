@@ -8,21 +8,6 @@ import (
 	"strings"
 )
 
-// Python library name to module name mapping
-var libToModule = map[string]string {
-    "scikit-learn": "sklearn",
-    "pillow":       "PIL",
-}
-
-
-// get the main module name for the library
-func GetModuleName(libName string) string {
-    if mod, ok := libToModule[libName]; ok {
-        return mod
-    }
-    return libName // default to the library name itself
-}
-
 
 // install Python library using pip
 func installPythonLib(libName, libVersion string) bool {

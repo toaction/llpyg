@@ -139,15 +139,14 @@ func main() {
 	moduleName := os.Args[1]
 	mod, err := pydump(moduleName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: failed to dump Python module %s: %v\n", moduleName, err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	// print module information
 	data, err := json.MarshalIndent(mod, "", "  ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: failed to marshal module to JSON: %v\n", err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	
 	fmt.Println(string(data))
 }
