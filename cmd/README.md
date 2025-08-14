@@ -7,7 +7,7 @@ Python 3.12
 install tools
 ```bash
 cd _xtool
-llgo install ./...      # pydump
+llgo install ./...      # pydump, pymodule
 
 cd llpyg
 go install -v ./cmd/...     # llpyg
