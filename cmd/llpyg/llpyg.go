@@ -81,12 +81,19 @@ func main() {
 	// if err := pydyn.ApplyEnv(pyHome); err != nil {
 	// 	log.Fatalf("set py env failed: %v\n", err)
 	// }
-	cwd, _ := os.Getwd()
+	root := os.Getenv("LLGO_ROOT")
+	if root == "" {
+		var err error
+		root, err = os.Getwd()
+		if err != nil {
+			log.Fatalf("failed to get working dir: %v", err)
+		}
+	}
 	pyHome := pydyn.GetPyHome("")
 	if pyHome == "" {
 		var err error
 		// 从二进制内置资产解压一套可用的 Python 到临时目录
-		pyHome, err = pyassets.ExtractToDir(cwd)
+		pyHome, err = pyassets.ExtractToDir(root)
 		if err != nil {
 			log.Fatalf("extract embedded python failed: %v\n", err)
 		}
