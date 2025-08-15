@@ -58,14 +58,14 @@ func PyEnvCheck(libName, libVersion string) (res bool, version string) {
 	// check python lib
 	cmd = exec.Command("pip3", "show", libName)
 	if err := cmd.Run(); err != nil {
-		log.Printf("error: library %s is not installed\n", libName)
-		// prompt to install the library
-		fmt.Printf("Do you want to install the library %s? (y/n): ", libName)
-		var answer string
-		fmt.Scanln(&answer)
-		if strings.ToLower(answer) != "y" {
-			return false, ""
-		}
+		// log.Printf("error: library %s is not installed\n", libName)
+		// // prompt to install the library
+		// fmt.Printf("Do you want to install the library %s? (y/n): ", libName)
+		// var answer string
+		// fmt.Scanln(&answer)
+		// if strings.ToLower(answer) != "y" {
+		// 	return false, ""
+		// }
 		res := installPythonLib(libName, libVersion)
 		if !res {
 			// installation failed
@@ -83,16 +83,20 @@ func PyEnvCheck(libName, libVersion string) (res bool, version string) {
 	}
 	// compare version
 	if version != libVersion {
-		log.Printf("error: library %s version mismatch, expected %s, got %s\n", libName, libVersion, version)
-		fmt.Printf("Do you want to install the library %s with version %s? (y/n): ", libName, libVersion)
-		var answer string
-		fmt.Scanln(&answer)
-		if strings.ToLower(answer) == "y" {
-			installed := installPythonLib(libName, libVersion)
-			if !installed {
-				// installation failed, return exist version
-				return true, version
-			}
+		// log.Printf("error: library %s version mismatch, expected %s, got %s\n", libName, libVersion, version)
+		// fmt.Printf("Do you want to install the library %s with version %s? (y/n): ", libName, libVersion)
+		// var answer string
+		// fmt.Scanln(&answer)
+		// if strings.ToLower(answer) == "y" {
+		// 	installed := installPythonLib(libName, libVersion)
+		// 	if !installed {
+		// 		// installation failed, return exist version
+		// 		return true, version
+		// 	}
+		// }
+		installed := installPythonLib(libName, libVersion)
+		if !installed {
+			return false, version
 		}
 	}
 	return true, libVersion
