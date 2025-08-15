@@ -300,7 +300,11 @@ func (ctx *context) genParams(pkg *gogen.Package, sig string) (*types.Tuple, boo
 	list := make([]*types.Var, 0, n)
 	for i := 0; i < n; i++ {
 		name := args[i].Name
-		if name == "/" {
+		name = strings.NewReplacer("[", "", "]", "").Replace(name)		// ([start,] stop[, step,], dtype=None, *, device=None, like=None)
+		name = strings.NewReplacer("(", "", ")", "").Replace(name)		// ( (a1, a2, ...), axis=0, out=None, dtype=None, casting=\"same_kind\" )
+		name = strings.ReplaceAll(name, ".", "")
+		name = strings.TrimSpace(name)
+		if name == "/" || name == "" || name == "," {
 			continue
 		}
 		if name == "*" || name == "\\*" {
