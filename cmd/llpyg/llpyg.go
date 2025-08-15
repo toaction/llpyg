@@ -7,6 +7,7 @@ import (
 	"os"
 	"go/token"
 	"log"
+	"strconv"
 	"go/ast"
 	"go/types"
 	"os/exec"
@@ -65,9 +66,9 @@ func pydump(moduleName string) (mod module, err error) {
     return mod, nil
 }
 
-func pymodule(libName string) (lib library, err error) {
+func pymodule(libName string, depth int) (lib library, err error) {
 	var out bytes.Buffer
-	cmd := exec.Command("pymodule", "-d", "2", libName)
+	cmd := exec.Command("pymodule", "-d", strconv.Itoa(depth), libName)
 	cmd.Stdout = &out
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
@@ -91,12 +92,11 @@ func main() {
 
 	output := flag.String("o", "./test", "Output dir")
 	modName := flag.String("mod", "", "Generate Go Bindings module name")
+	modDepth := flag.Int("d", 1, "Extract module depth")
 	flag.Parse()
 
-	fmt.Printf("llpyg args: output=%s, modName=%s\n", *output, *modName)
-
     if flag.NArg() < 1 {
-        fmt.Fprintln(os.Stderr, "Usage: llpyg [-o outputDir] [-mod modName] pythonLibName[==version]")
+        fmt.Fprintln(os.Stderr, "Usage: llpyg [-o outputDir] [-mod modName] [-d modDepth] pythonLibName[==version]")
         os.Exit(1)
     }
 	libArg := flag.Arg(0)
@@ -105,6 +105,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "error: Python library name cannot be empty")
 		os.Exit(1)
 	}
+	fmt.Printf("llpyg args: libName=%s, libVersion=%s, output=%s, modName=%s, modDepth=%d\n", libName, libVersion, *output, *modName, *modDepth)
 
 	// check Python environment and library
 	fmt.Printf("Checking Python environment...\n")
@@ -115,7 +116,7 @@ func main() {
 	fmt.Printf("Python library (%s %s) is ready\n", libName, version)
 
 	// generate llpyg.cfg
-	lib, err := pymodule(libName)
+	lib, err := pymodule(libName, *modDepth)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -127,6 +128,11 @@ func main() {
 		Modules: 	lib.Modules,
 	}
 	outDir := filepath.Join(*output, cfg.Name)
+	err = os.RemoveAll(outDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	if err := writeConfig(cfg, outDir); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

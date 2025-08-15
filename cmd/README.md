@@ -17,8 +17,9 @@ run `llpyg`
 llpyg python_lib[==version]
 ```
 args: 
- - `-o`: Output dir
- - `-mod`: LLGo Bindings module name
+ - `-o`: Output dir, default `./test`
+ - `-mod`: LLGo Bindings module name, default `libName`
+ - `-d`: Extract Python module depth, default `1`
 
 example:
 ```bash
