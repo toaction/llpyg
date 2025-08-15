@@ -70,6 +70,10 @@ func (pkg *library) getModules(moduleName string, depth int) {
 		if isPkg.IsTrue() == 1 {
 			pkg.getModules(subModuleName, depth+1)
 		} else {
+			subMod := py.ImportModule(c.AllocaCStr(subModuleName))
+			if subMod == nil {
+				continue
+			}
 			pkg.Modules = append(pkg.Modules, subModuleName)
 		}
 	}
