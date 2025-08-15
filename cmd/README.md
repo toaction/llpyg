@@ -11,6 +11,11 @@ llgo install ./...      # pydump, pymodule
 
 go install -v ./cmd/...     # llpyg
 ```
+or 
+```bash
+bash ./install.sh
+```
+
 run `llpyg`
 ```bash
 llpyg python_lib[==version]
