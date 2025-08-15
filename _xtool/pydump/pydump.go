@@ -137,7 +137,9 @@ func main() {
 	}
 	// get module name from command line argument
 	moduleName := os.Args[1]
+	py.Initialize()
 	mod, err := pydump(moduleName)
+	py.Finalize()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -92,7 +92,9 @@ func main() {
 		Depth: *depth,
 		Modules: []string{},
 	}
+	py.Initialize()
 	pkg.getModules(GetModuleName(libraryName), 1)
+	py.Finalize()
 	data, err := json.MarshalIndent(pkg, "", "  ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
