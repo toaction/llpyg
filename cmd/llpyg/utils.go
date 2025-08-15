@@ -68,13 +68,15 @@ func genGoModule(modName string, outDir string) {
         log.Printf("error: failed to get github.com/goplus/lib/py: %v\n", err)
         os.Exit(1)
     }
+}
 
-    // go mod tidy
-    // tidyCmd := exec.Command("go", "mod", "tidy")
-    // tidyCmd.Stdout = os.Stdout
-    // tidyCmd.Stderr = os.Stderr
-    // if err := tidyCmd.Run(); err != nil {
-    //     log.Printf("error: failed to run go mod tidy: %v\n", err)
-	// 	os.Exit(1)
-    // }
+
+func goModTidy() {
+    tidyCmd := exec.Command("go", "mod", "tidy")
+    tidyCmd.Stdout = os.Stdout
+    tidyCmd.Stderr = os.Stderr
+    if err := tidyCmd.Run(); err != nil {
+        log.Printf("error: failed to run go mod tidy: %v\n", err)
+    	return
+    }
 }

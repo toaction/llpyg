@@ -139,20 +139,22 @@ func main() {
 	genGoModule(*modName, outDir)
 
 	// LLGo Bindings generation
-	generateFromConfig(cfg, outDir)
+	generateFromConfig(cfg)
+
+	goModTidy()
 
 	fmt.Printf("LLGo bindings generated successfully in %s\n", outDir)
 }
 
-func generateFromConfig(cfg Config, outDir string) {
+func generateFromConfig(cfg Config) {
 	for _, moduleName := range cfg.Modules {
 		fmt.Printf("Generating Go bindings for %s...\n", moduleName)
-		genGoBindings(moduleName, outDir)
+		genGoBindings(moduleName)
 	}
 }
 
 
-func genGoBindings(moduleName, outDir string) {
+func genGoBindings(moduleName string) {
 	// pydump
 	mod, err := pydump(moduleName)
 	if err != nil {

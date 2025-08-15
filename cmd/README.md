@@ -9,7 +9,6 @@ install tools
 cd _xtool
 llgo install ./...      # pydump, pymodule
 
-cd llpyg
 go install -v ./cmd/...     # llpyg
 ```
 run `llpyg`
