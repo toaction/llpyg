@@ -12,4 +12,6 @@
 # test
 **/_test
 **/test
-./demo
+
+# cfg
+**/*.cfg
