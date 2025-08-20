@@ -3,97 +3,69 @@ package pyenv
 import (
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 )
 
 
-// install Python library using pip
-func installPythonLib(libName, libVersion string) bool {
-	arg := libName
-	if libVersion != "" {
-		arg += "==" + libVersion
+
+func PyEnvCheck(libName string) {
+	// check python env
+	pycmd, err := checkPython()
+	if err != nil {
+		log.Fatal(err)
 	}
-    installCmd := "pip3"
-    args := []string{"install", arg}
-	// system packages may not be writable
-	args = append(args, "--break-system-packages")
-    cmd := exec.Command(installCmd, args...)
-    cmd.Stdout = os.Stdout
-    cmd.Stderr = os.Stderr
-    if err := cmd.Run(); err != nil {
-		log.Printf("error: failed to install library %s: %v\n", arg, err)
-		return false
+	// check python library
+	var pipcmd string
+	switch pycmd {
+	case "python3":
+		pipcmd = "pip3"
+	case "python":
+		pipcmd = "pip"
 	}
-	return true
+	if err := checkLibrary(pipcmd, libName); err != nil {
+		log.Fatal(err)
+	}
 }
 
-
-func getVersionFromPip(libName string) (string, error) {
-	cmd := exec.Command("pip3", "show", libName)
+func checkPython() (pycmd string, err error) {
+	var version string
+	// try python3
+	cmd := exec.Command("python3", "--version")
 	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("error: failed to get version for library %s", libName)
+	if err == nil {
+		version = string(output)
+		if strings.HasPrefix(version, "Python 3.12") {
+			return "python3", nil
+		}
 	}
-	lines := strings.Split(string(output), "\n")
+	// try python
+	cmd = exec.Command("python", "--version")
+	output, err = cmd.Output()
+	if err == nil {
+		version = string(output)
+		if strings.HasPrefix(version, "Python 3.12") {
+			return "python", nil
+		}
+	}
+	if version != "" {
+		return "", fmt.Errorf("error: Python version is not 3.12: %s", version)
+	}
+	return "", fmt.Errorf("error: Python is not installed or not found")
+}
+
+func checkLibrary(pipcmd, libName string) error {
+	cmd := exec.Command(pipcmd, "show", libName)
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("error: %s is not installed: %v", libName, err)
+	}
+	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, "Version: ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "Version: ")), nil
+			fmt.Printf("%s %s is ready\n", libName, strings.TrimPrefix(line, "Version: "))
+			break
 		}
 	}
-	return "", fmt.Errorf("error: version not found for library %s", libName)
-}
-
-
-// 检查本地是否存在Python环境, 是否已安装指定版本的Python库
-// return result, installed version
-func PyEnvCheck(libName, libVersion string) (res bool, version string) {
-	// check python env
-	cmd := exec.Command("python3", "--version")
-    if err := cmd.Run(); err != nil {
-		log.Printf("error: Python is not installed or not found: %v\n", err)
-        return false,""
-    }
-	// check python lib
-	cmd = exec.Command("pip3", "show", libName)
-	if err := cmd.Run(); err != nil {
-		log.Printf("error: library %s is not installed\n", libName)
-		// prompt to install the library
-		fmt.Printf("Do you want to install the library %s? (y/n): ", libName)
-		var answer string
-		fmt.Scanln(&answer)
-		if strings.ToLower(answer) != "y" {
-			return false, ""
-		}
-		res := installPythonLib(libName, libVersion)
-		if !res {
-			// installation failed
-			return false, ""
-		}
-	}
-	// check python lib version
-	version, err := getVersionFromPip(libName)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return false, ""
-	}
-	if libVersion == "" {
-		return true, version
-	}
-	// compare version
-	if version != libVersion {
-		log.Printf("error: library %s version mismatch, expected %s, got %s\n", libName, libVersion, version)
-		fmt.Printf("Do you want to install the library %s with version %s? (y/n): ", libName, libVersion)
-		var answer string
-		fmt.Scanln(&answer)
-		if strings.ToLower(answer) == "y" {
-			installed := installPythonLib(libName, libVersion)
-			if !installed {
-				// installation failed, return exist version
-				return true, version
-			}
-		}
-	}
-	return true, libVersion
+	return nil
 }

@@ -23,6 +23,7 @@ func Add(x1 *py.Object, x2 *py.Object) *py.Object
 
 ### 安装前提
 
+- Go
 - [LLGo](https://github.com/goplus/llgo)
 
 llpyg 需要 LLGo 对一些子组件进行编译，如 `pydump` 和 `pymodule`. 但当 llpyg 安装完成后，无需 LLGo 即可运行。
@@ -67,6 +68,10 @@ llpyg [-o ouput_dir] [-mod mod_name] [-d module_depth] py_lib_name
 - `name`: Go package name.
 - `libName`: Python library name.
 - `modules`: Extract Python modules.
+
+```bash
+llpyg [-o ouput_dir] [-mod mod_name] llpyg.cfg
+```
 
 ### Output
 
