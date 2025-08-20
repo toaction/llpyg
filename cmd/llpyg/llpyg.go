@@ -151,9 +151,6 @@ func pymodule(libName string, depth int) (lib library, err error) {
 	if err != nil {
 		return lib, fmt.Errorf("unmarshal %s failed", libName)
 	}
-	if len(lib.Modules) == 0 {
-		return lib, fmt.Errorf("get modules from package %s failed", libName)
-	}
 	return lib, nil
 }
 

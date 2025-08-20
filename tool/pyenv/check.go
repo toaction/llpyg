@@ -1,13 +1,12 @@
 package pyenv
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os/exec"
 	"strings"
 )
-
-
 
 func PyEnvCheck(libName string) {
 	// check python env
@@ -16,14 +15,7 @@ func PyEnvCheck(libName string) {
 		log.Fatal(err)
 	}
 	// check python library
-	var pipcmd string
-	switch pycmd {
-	case "python3":
-		pipcmd = "pip3"
-	case "python":
-		pipcmd = "pip"
-	}
-	if err := checkLibrary(pipcmd, libName); err != nil {
+	if err := checkLibrary(pycmd, libName); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -54,18 +46,30 @@ func checkPython() (pycmd string, err error) {
 	return "", fmt.Errorf("error: Python is not installed or not found")
 }
 
-func checkLibrary(pipcmd, libName string) error {
-	cmd := exec.Command(pipcmd, "show", libName)
-	out, err := cmd.Output()
+// Python library name to module name mapping
+var libToModule = map[string]string{
+	"scikit-learn": "sklearn",
+	"pillow":       "PIL",
+}
+
+func GetModuleName(libName string) string {
+	if mod, ok := libToModule[libName]; ok {
+		return mod
+	}
+	return libName
+}
+
+func checkLibrary(pycmd, libName string) error {
+	moduleName := GetModuleName(libName)
+	code := fmt.Sprintf("import %s; print(%s.__version__)", moduleName, moduleName)
+	cmd := exec.Command(pycmd, "-c", code)
+	var stdout, stderr bytes.Buffer
+    cmd.Stdout = &stdout
+    cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("error: %s is not installed: %v", libName, err)
+		return fmt.Errorf("error: %s check failed: %s", libName, stderr.String())
 	}
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "Version: ") {
-			fmt.Printf("%s %s is ready\n", libName, strings.TrimPrefix(line, "Version: "))
-			break
-		}
-	}
+	fmt.Printf("%s %s is ready\n", libName, strings.TrimSpace(stdout.String()))
 	return nil
 }
