@@ -2,6 +2,7 @@ package main
 
 
 import (
+	"log"
 	"os"
 	"fmt"
 	"flag"
@@ -92,11 +93,14 @@ func main() {
 		Depth: *depth,
 		Modules: []string{},
 	}
-	pkg.getModules(GetModuleName(libraryName), 1)
+	moduleName := GetModuleName(libraryName)
+	pkg.getModules(moduleName, 1)
+	if len(pkg.Modules) == 0 {
+		log.Fatalf("error: import module failed: %s", moduleName)
+	}
 	data, err := json.MarshalIndent(pkg, "", "  ")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		log.Fatalf("error: failed to marshal json: %v", err)
 	}
 	fmt.Println(string(data))
 }
