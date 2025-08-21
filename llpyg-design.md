@@ -134,7 +134,7 @@ llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对
 用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
 
 
-## 开发相关
+## How it works
 
 ### 项目结构
 
@@ -159,10 +159,42 @@ llpyg/
 - `cmd`: 可执行文件，每个子目录对应一个可执行文件
 - `tool`: 仅用 Go 即可运行的子组件，应包含单元测试
 
+### Python 环境检查
+代码目录： `/tool/pyenv`
+
+llpyg 目前直接使用系统 Python 环境，检查步骤：
+
+1. 使用 `python3 --version` 命令检查 Python 环境及版本(>=3.12)
+2. 使用 `pip3 show lib_name` 命令检查第三方库是否已安装
+3. 使用 `python3 -c "import lib_name"` 命令检查主模块是否可导入(依赖完整)
 
 
+### 函数签名解析
+代码目录： `/tool/pysig`
 
+从签名中提取四个信息：`Name`，`Type`, `DefaultValue`, `Optional`
 
+支持可选项解析：
+```Python
+([start, ]stop, [step, ]dtype=None, *, device=None, like=None)
+```
+支持列表参数解析：
+```Python
+( (a1, a2, ...), axis=0, out=None, dtype=None, casting=\"same_kind\" )
+```
+支持复杂参数类型及默认值解析：
+```Python
+(start: 'Union[int, float]', stop: 'Union[int, float]', /, num: 'int', *, dtype: 'Optional[Dtype]' = None, device: 'Optional[Device]' = None, endpoint: 'bool' = True) -> 'Array'
+```
+解析结果：
+```json
+{
+    "name": "start",
+    "type": "'Union[int, float]'",
+    "defVal": "",
+    "optional": false
+},
+```
 
 
 

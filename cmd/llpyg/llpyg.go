@@ -286,7 +286,6 @@ func inFuncSet(typeName string) bool {
 }
 
 func (ctx *context) genMod(pkg *gogen.Package, mod *module) {
-	// 重复函数覆盖
 	funcMap := make(map[string]symbol)
 	for _, sym := range mod.Items {
 		if inFuncSet(sym.Type) {
@@ -295,6 +294,7 @@ func (ctx *context) genMod(pkg *gogen.Package, mod *module) {
 		}
 		ctx.todos = append(ctx.todos, element{name: sym.Name, pyType: sym.Type})
 	}
+	// use the last function definition
 	for _, sym := range funcMap {
 		ctx.genFunc(pkg, &sym)
 	}
@@ -323,6 +323,21 @@ func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol) {
 	fn.SetComments(pkg, &ast.CommentGroup{List: docList})
 }
 
+var keywords = map[string]bool{
+    // declare
+    "package": true, "import": true, "var": true, "const": true, "func": true, "type": true,
+    // control
+    "if": true, "else": true, "switch": true, "case": true, "default": true, "for": true, "range": true,
+    // jump
+    "break": true, "continue": true, "goto": true, "fallthrough": true,
+    // function
+    "return": true, "defer": true,
+    // concurrent
+    "go": true, "chan": true, "select": true,
+    // struct
+    "struct": true, "interface": true, "map": true,
+}
+
 func (ctx *context) genParams(pkg *gogen.Package, sig string) (*types.Tuple, bool) {
 	args := pysig.Parse(sig)
 	if len(args) == 0 {
@@ -331,19 +346,24 @@ func (ctx *context) genParams(pkg *gogen.Package, sig string) (*types.Tuple, boo
 	n := len(args)
 	objPtr := ctx.objPtr
 	list := make([]*types.Var, 0, n)
+    listNum := 0
 	for i := 0; i < n; i++ {
-		name := args[i].Name
-		name = strings.NewReplacer("[", "", "]", "").Replace(name) // ([start,] stop[, step,], dtype=None, *, device=None, like=None)
-		name = strings.NewReplacer("(", "", ")", "").Replace(name) // ( (a1, a2, ...), axis=0, out=None, dtype=None, casting=\"same_kind\" )
-		name = strings.ReplaceAll(name, ".", "")
-		name = strings.TrimSpace(name)
+		name := strings.TrimSpace(args[i].Name)
+        // go keyword
+        if keywords[name] {
+            name = "_" + name
+        }
+		if name[0] == '(' {				// (a1, a2, ...) -> list_0
+			name = "list_" + strconv.Itoa(listNum)
+			listNum++
+		}
 		if name == "/" || name == "" || name == "," {
 			continue
 		}
 		if name == "*" || name == "\\*" {
 			break
 		}
-		if strings.HasPrefix(name, "*") {
+		if strings.HasPrefix(name, "*") {			// *args, **kwargs
 			if name[1] != '*' {
 				list = append(list, vArgs)
 				return types.NewTuple(list...), true
