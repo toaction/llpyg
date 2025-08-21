@@ -15,35 +15,40 @@ func Add(x1 *py.Object, x2 *py.Object) *py.Object
 
 **[llpyg](https://github.com/goplus/llpyg)**：一个面向 Python 库的 LLGo Bindings 自动生成工具。
 
-## 前提条件
-
-### llpyg 面向人群
-
-- LLGo 开发者
-
-### 安装前提
-
-- Go
-- [LLGo](https://github.com/goplus/llgo)
-
-llpyg 需要 LLGo 对一些子组件进行编译，如 `pydump` 和 `pymodule`. 但当 llpyg 安装完成后，无需 LLGo 即可运行。
-
-### 运行前提
-
-- Python 3.12 (通过 `python3` 或 `python` 检测)
-- 要转换的第三方库 (通过 `pip3 show` 或 `pip show` 检测)
-
 ## 安装与使用
 
-### Install
+### Dependencies
 
+- [LLGo](https://github.com/goplus/llgo)
+- [Python 3.12+](https://www.python.org/)
+
+### How to install
+
+执行安装之前，请确定本地已有 Python 环境:
 ```bash
+python3 --version
+```
+
+Install from source:
+```bash
+git clone -b feat/v1 https://github.com/toaction/llpyg.git
+cd llpyg
 bash install.sh
 ```
 
+
+
 ### Usage
 
-**1. 命令行**
+执行命令之前，请确保本地已安装要转换的 Python 第三方库：
+```bash
+pip3 show lib_name
+```
+你可以选择两种不同的方式来执行命令，分别是：
+- 命令行参数
+- llpyg.cfg 配置文件
+
+**1. 命令行参数**
 
 ```bash
 llpyg [-o ouput_dir] [-mod mod_name] [-d module_depth] py_lib_name
@@ -54,6 +59,11 @@ llpyg [-o ouput_dir] [-mod mod_name] [-d module_depth] py_lib_name
 - `-d`: Extract Python module max depth, default `1`.
 
 **2. llpyg.cfg 文件**
+
+```bash
+llpyg [-o ouput_dir] [-mod mod_name] llpyg.cfg
+```
+llpyg.cfg 是配置文件，可以对内容进行修改，llpyg将会根据该文件执行程序。示例：
 
 ```json
 {
@@ -69,13 +79,9 @@ llpyg [-o ouput_dir] [-mod mod_name] [-d module_depth] py_lib_name
 - `libName`: Python library name.
 - `modules`: Extract Python modules.
 
-```bash
-llpyg [-o ouput_dir] [-mod mod_name] llpyg.cfg
-```
-
 ### Output
 
-输出目录结构：以 `numpy` 为例
+以 `numpy` 为例 (`-d=1`)，输出目录结构：
 
 ```go
 numpy
@@ -102,6 +108,32 @@ func Maximum(x1 *py.Object, x2 *py.Object) *py.Object
 ```
 
 
+## 设计决策
+
+### llpyg 是否需要脱离 LLGo ?
+> https://github.com/goplus/llpyg/issues/5
+
+llpyg 面向的是那些需要 LLGo Bindings 的用户，即 LLGo 开发者，因此可以依赖于 LLGo.
+
+llpyg 依赖于 LLGo 的 Python 生态集成能力，该工具的一些子组件如 `pydump` 和 `pymodule` 需要 LLGo 进行编译，但当 llpyg 安装完成后，无需 LLGo 运行。
+
+### llpyg 是否需要为用户提供与系统无关的 Python 环境？
+
+> https://github.com/goplus/llpyg/issues/2#issuecomment-3200109475
+
+llpyg 默认使用系统 Python 环境，并不为用户提供 Python 安装及第三方库自动下载的服务。
+
+llpyg 只做 Python 环境的检查操作，当无法检测到系统的 Python 环境或检测到第三方库未安装时，触发 `panic`。
+
+### 要转换的 Python 库的版本是否可以指定？
+
+> https://github.com/goplus/llpyg/issues/8
+
+llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对版本的修改。
+
+用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
+
+
 ## 开发相关
 
 ### 项目结构
@@ -123,17 +155,9 @@ llpyg/
 └── LICENSE
 ```
 
-- `_xtool`: 需要使用 LLGo 进行编译的子命令
+- `_xtool`: 需要使用 LLGo 进行编译的子组件
 - `cmd`: 可执行文件，每个子目录对应一个可执行文件
-- `tool`: 子组件，应对每一个可独立的子组件进行单元测试
-
-
-
-
-
-
-
-
+- `tool`: 仅用 Go 即可运行的子组件，应包含单元测试
 
 
 
