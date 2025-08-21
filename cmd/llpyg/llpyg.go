@@ -104,7 +104,7 @@ func parseArgs() (runMode string, args Args) {
 	flag.Parse()
 
 	if flag.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "Usage:")
+		fmt.Fprintln(os.Stderr, "Input error: Usage")
 		fmt.Fprintln(os.Stderr, "  llpyg [-o outputDir] [-mod modName] [-d modDepth] pythonLibName")
 		fmt.Fprintln(os.Stderr, "  llpyg [-o outputDir] [-mod modName] llpyg.cfg")
 		os.Exit(1)
@@ -117,7 +117,7 @@ func parseArgs() (runMode string, args Args) {
 		OutputDir: absOutput,
 		ModName:   *modName,
 		ModDepth:  *modDepth,
-		Narg:      flag.Arg(0),
+		Narg:      flag.Arg(0),		// pythonLibName or cfgPath
 	}
 	if strings.HasSuffix(args.Narg, ".cfg") {
 		return "cfg", args

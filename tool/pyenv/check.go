@@ -22,28 +22,20 @@ func PyEnvCheck(libName string) {
 
 func checkPython() (pycmd string, err error) {
 	var version string
-	// try python3
+	// check python
 	cmd := exec.Command("python3", "--version")
 	output, err := cmd.Output()
-	if err == nil {
-		version = string(output)
-		if strings.HasPrefix(version, "Python 3.12") {
-			return "python3", nil
-		}
+	if err != nil {
+		return "", fmt.Errorf("error: python3 is not installed or not found")
+		// Todo: support python, python3.12(>= 3.12)
 	}
-	// try python
-	cmd = exec.Command("python", "--version")
-	output, err = cmd.Output()
-	if err == nil {
-		version = string(output)
-		if strings.HasPrefix(version, "Python 3.12") {
-			return "python", nil
-		}
+	// check version: >= 3.12
+	version = strings.TrimSpace(strings.TrimPrefix(string(output), "Python "))
+	parts := strings.Split(version, ".")
+	if len(parts) < 2 || parts[0] != "3" || parts[1] < "12" {
+		return "", fmt.Errorf("error: Python version does not match, should be >= 3.12, found: %s", version)
 	}
-	if version != "" {
-		return "", fmt.Errorf("error: Python version is not 3.12: %s", version)
-	}
-	return "", fmt.Errorf("error: Python is not installed or not found")
+	return "python3", nil
 }
 
 // Python library name to module name mapping
@@ -52,7 +44,7 @@ var libToModule = map[string]string{
 	"pillow":       "PIL",
 }
 
-func GetModuleName(libName string) string {
+func getModuleName(libName string) string {
 	if mod, ok := libToModule[libName]; ok {
 		return mod
 	}
@@ -60,15 +52,22 @@ func GetModuleName(libName string) string {
 }
 
 func checkLibrary(pycmd, libName string) error {
-	moduleName := GetModuleName(libName)
+	// check library
+	pipcmd := strings.Replace(pycmd, "python", "pip", 1)
+	cmd := exec.Command(pipcmd, "show", libName)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error: %s is not installed", libName)
+	}
+	// check module
+	moduleName := getModuleName(libName)
 	code := fmt.Sprintf("import %s; print(%s.__version__)", moduleName, moduleName)
-	cmd := exec.Command(pycmd, "-c", code)
+	cmd = exec.Command(pycmd, "-c", code)
 	var stdout, stderr bytes.Buffer
     cmd.Stdout = &stdout
     cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("error: %s check failed: %s", libName, stderr.String())
+		return fmt.Errorf("error: %s import module failed: %s", libName, stderr.String())
 	}
 	fmt.Printf("%s %s is ready\n", libName, strings.TrimSpace(stdout.String()))
 	return nil
