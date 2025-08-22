@@ -133,6 +133,12 @@ llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对
 
 用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
 
+### llpyg 是否需要为用户提供指定 Python 路径的功能？
+
+> https://github.com/goplus/llpyg/issues/9
+
+用户可以通过 `PYTHONHOME` 环境变量来指定 Python 路径，也可以使用 `LLPYG_PYHOME` 来指定，当两个环境变量都存在时，优先使用 `PYTHONHOME`。
+
 
 ## How it works
 

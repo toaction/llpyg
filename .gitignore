@@ -12,6 +12,7 @@
 # test
 **/_test
 **/test
+test*
 !tool/**/test
 
 # cfg

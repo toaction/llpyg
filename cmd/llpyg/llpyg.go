@@ -57,6 +57,9 @@ func main() {
 
 	// parse args
 	runMode, args := parseArgs()
+	
+    // prepare python environment
+	pyenv.Prepare()
 
 	// get config
 	switch runMode {
