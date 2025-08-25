@@ -22,11 +22,26 @@ func Add(x1 *py.Object, x2 *py.Object) *py.Object
 - [LLGo](https://github.com/goplus/llgo)
 - [Python 3.12+](https://www.python.org/)
 
+使用 LLGo 需要正确设置以下环境变量：
+```bash
+export LLGO_ROOT=/path/to/llgo
+```
+
 ### How to install
 
-执行安装之前，请确定本地已有 Python 环境:
+执行安装之前，请确保本地已有 Python 环境。
+
+若**使用系统 Python**, 使用以下命令确保环境检查能够通过:
 ```bash
 python3 --version
+```
+此外还需要正确配置以下环境变量：
+```bash
+export PKG_CONFIG_PATH="/path/to/python/lib/pkgconfig:$PKG_CONFIG_PATH"
+``` 
+你也可以**指定 Python 路径**，只需要配置以下环境变量：
+```bash
+export PYTHONHOME=/path/to/python
 ```
 
 Install from source:
@@ -40,10 +55,7 @@ bash install.sh
 
 ### Usage
 
-执行命令之前，请确保本地已安装要转换的 Python 第三方库：
-```bash
-pip3 show lib_name
-```
+执行命令之前，请确保使用的 Python 路径下已安装要转换的 Python 第三方库。
 你可以选择两种不同的方式来执行命令，分别是：
 - 命令行参数
 - llpyg.cfg 配置文件
@@ -168,7 +180,7 @@ llpyg/
 ### Python 环境检查
 代码目录： `/tool/pyenv`
 
-llpyg 目前直接使用系统 Python 环境，检查步骤：
+llpyg 目前通过调用命令来检查环境，检查步骤：
 
 1. 使用 `python3 --version` 命令检查 Python 环境及版本(>=3.12)
 2. 使用 `pip3 show lib_name` 命令检查第三方库是否已安装
