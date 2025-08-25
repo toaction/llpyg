@@ -23,3 +23,4 @@ func envTest() {
 	os.Setenv("PATH", "/Users/mac/work/python/bin:$PATH")
 	libTest()
 }
+

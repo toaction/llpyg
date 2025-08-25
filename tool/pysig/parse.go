@@ -193,3 +193,4 @@ func findMatchingBracket(sig string, open, close byte) int {
 	}
 	return -1
 }
+

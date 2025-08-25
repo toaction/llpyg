@@ -428,3 +428,4 @@ var (
 	tyAny            = types.NewInterfaceType(nil, nil)
 	vArgs            = types.NewParam(0, nil, NameValist, types.NewSlice(tyAny))
 )
+

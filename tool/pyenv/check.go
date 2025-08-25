@@ -72,3 +72,4 @@ func checkLibrary(pycmd, libName string) error {
 	fmt.Printf("%s %s is ready\n", libName, strings.TrimSpace(stdout.String()))
 	return nil
 }
+
