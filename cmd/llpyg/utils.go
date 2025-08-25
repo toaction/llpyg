@@ -64,3 +64,4 @@ func goModTidy(outDir string) error {
 	}
 	return nil
 }
+
