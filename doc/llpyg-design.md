@@ -29,7 +29,13 @@ func Add(x1 *py.Object, x2 *py.Object) *py.Object
 python3 --version
 ```
 
-Install from source:
+你可以通过两种方式来为 llpyg 提供 Python环境：
+- 通过 `PYTHONHOME` 指定 Python
+- 直接使用系统 Python
+
+> 若使用系统 Python，请确保已正确设置 `PKG_CONFIG_PATH`，LLGo 需要通过此环境变量正确链接到 Python 库的位置。
+
+**Install from source**:
 ```bash
 git clone -b feat/v1 https://github.com/toaction/llpyg.git
 cd llpyg
@@ -133,6 +139,12 @@ llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对
 
 用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
 
+### llpyg 是否需要为用户提供指定 Python 路径的功能？
+
+> https://github.com/goplus/llpyg/issues/9
+
+用户可以通过 `PYTHONHOME` 环境变量来指定 Python 路径。 llpyg 并不会提供一个单独的环境变量。
+
 
 ## How it works
 
@@ -196,8 +208,22 @@ llpyg 目前直接使用系统 Python 环境，检查步骤：
 },
 ```
 
+### 指定 Python 路径
+当用户系统中存在 `PYTHONHOME` 环境变量时，llpyg 会优先使用该环境变量指定的 Python 路径。
 
-
+在安装 llpyg 时，需要用到 LLGo 的 Python 集成能力，此时需要为 LLGo 指定 Python 解释器的位置。因此在安装时，需要设置一些临时的系统环境变量：
+```bash
+pyHome=$PYTHONHOME
+if [ -n "$pyHome" ]; then
+    export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
+fi
+```
+现阶段 Python 库的位置是动态指定的，在每次运行时，都需要重新设置环境变量。
+```bash
+export PATH="$pyHome/bin:$PATH"
+export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
+export DYLD_LIBRARY_PATH="$pyHome/lib:$DYLD_LIBRARY_PATH"
+```
 
 
 
