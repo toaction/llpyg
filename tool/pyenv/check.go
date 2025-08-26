@@ -14,6 +14,10 @@ func PyEnvCheck(libName string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	pyHome, err := pyLocation(pycmd)
+	if err == nil {
+		fmt.Printf("Python home: %s\n", pyHome)
+	}
 	// check python library
 	if err := checkLibrary(pycmd, libName); err != nil {
 		log.Fatal(err)
@@ -36,6 +40,15 @@ func checkPython() (pycmd string, err error) {
 		return "", fmt.Errorf("error: Python version does not match, should be >= 3.12, found: %s", version)
 	}
 	return "python3", nil
+}
+
+func pyLocation(pycmd string) (pyHome string, err error) {
+	cmd := exec.Command(pycmd, "-c", "import sys; print(sys.prefix)")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
 }
 
 // Python library name to module name mapping
