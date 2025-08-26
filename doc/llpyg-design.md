@@ -37,7 +37,7 @@ python3 --version
 
 **Install from source**:
 ```bash
-git clone -b feat/v1 https://github.com/toaction/llpyg.git
+git clone https://github.com/toaction/llpyg.git
 cd llpyg
 bash install.sh
 ```
@@ -172,9 +172,9 @@ llpyg/
 - `tool`: 仅用 Go 即可运行的子组件，应包含单元测试
 
 ### Python 环境检查
-代码目录： `/tool/pyenv`
+代码： `/tool/pyenv/check.go`
 
-llpyg 目前直接使用系统 Python 环境，检查步骤：
+llpyg 目前通过执行命令来检查 Python 环境，检查步骤：
 
 1. 使用 `python3 --version` 命令检查 Python 环境及版本(>=3.12)
 2. 使用 `pip3 show lib_name` 命令检查第三方库是否已安装
@@ -213,6 +213,8 @@ llpyg 目前直接使用系统 Python 环境，检查步骤：
 
 在安装 llpyg 时，需要用到 LLGo 的 Python 集成能力，此时需要为 LLGo 指定 Python 解释器的位置。因此在安装时，需要设置一些临时的系统环境变量：
 ```bash
+# install.sh
+
 pyHome=$PYTHONHOME
 if [ -n "$pyHome" ]; then
     export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
@@ -220,20 +222,27 @@ fi
 ```
 现阶段 Python 库的位置是动态指定的，在每次运行时，都需要重新设置环境变量。
 ```bash
+# /tool/pyenv/prepare.go
+
 export PATH="$pyHome/bin:$PATH"
 export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
 export DYLD_LIBRARY_PATH="$pyHome/lib:$DYLD_LIBRARY_PATH"
 ```
 
+### 符号信息提取
+代码目录： `/_xtool/pydump`
+```bash
+pydump py_module_name
+```
+从 Python 模块中提取符号信息，包括：
+- Name
+- Type
+- Doc
+- Signature
 
-
-
-
-
-
-
-
-
-
+对于函数，签名的提取方法：
+1. 利用反射 `inspect.signature` 获取 Python 函数签名
+2. 从文档中获取函数签名，该方法适用于 C 编写的内置函数
+3. 将签名统一设置为 `(*args, **kwargs)`
 
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"log"
 	"fmt"
 	"encoding/json"
 	"strings"
@@ -24,23 +25,13 @@ type module struct {
 }
 
 
-var funcSet = []string {
-	"ufunc",
-	"method",
-	"function", 
-	"method-wrapper",
-	"builtin_function_or_method",
-	"_ArrayFunctionDispatcher",
-}
-
-
-func inFuncSet(typeName string) bool {
-	for _, item := range funcSet {
-		if item == typeName {
-			return true
-		}
-	}
-	return false
+var pyFuncTypes = map[string]bool{
+	"ufunc": true,
+	"method": true,
+	"function": true,
+	"method-wrapper": true,
+	"builtin_function_or_method": true,
+	"_ArrayFunctionDispatcher": true,
 }
 
 func extractSignatureFromDoc(doc, funcName string) string {
@@ -81,7 +72,7 @@ func getSignature(val *py.Object, sym *symbol) string {
 		return sigFromDoc
 	}
 	// Paradigms
-	if inFuncSet(sym.Type) {
+	if pyFuncTypes[sym.Type] {
 		return "(*args, **kwargs)"
 	}
 	return ""
@@ -135,18 +126,15 @@ func main() {
 		fmt.Println("Usage: pydump <py_module_name>")
 		return
 	}
-	// get module name from command line argument
 	moduleName := os.Args[1]
 	mod, err := pydump(moduleName)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	// print module information
 	data, err := json.MarshalIndent(mod, "", "  ")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	fmt.Println(string(data))
 }
