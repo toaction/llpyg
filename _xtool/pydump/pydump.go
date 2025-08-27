@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"log"
 	"fmt"
 	"encoding/json"
 	"strings"
@@ -82,15 +81,14 @@ func getSignature(val *py.Object, sym *symbol) string {
 // moduleName: Python module name
 func pydump(moduleName string) (*module, error) {
 	// import module
-	// mod := py.ImportModule(c.Str(moduleName)) // panic: cstr(<string-literal>): invalid arguments
 	mod := py.ImportModule(c.AllocaCStr(moduleName))
 	if mod == nil {
-		return nil, fmt.Errorf("failed to import module: %s", moduleName)
+		return nil, fmt.Errorf("failed to import module %s", moduleName)
 	}
 	// get dict, python list Object
 	keys := mod.ModuleGetDict().DictKeys()
 	if keys == nil {
-		return nil, fmt.Errorf("failed to get module dict keys: %s", moduleName)
+		return nil, fmt.Errorf("failed to get dict keys of %s", moduleName)
 	}
 	// create module instance
 	modInstance := &module{
@@ -110,7 +108,6 @@ func pydump(moduleName string) (*module, error) {
 		// doc
 		doc := val.GetAttrString(c.Str("__doc__"))
 		if doc != nil {
-			// sym.Doc = c.GoString(doc.CStr())	// panic: signal: segmentation fault
 			sym.Doc = c.GoString(doc.Str().CStr())
 		}
 		// signature
@@ -129,12 +126,14 @@ func main() {
 	moduleName := os.Args[1]
 	mod, err := pydump(moduleName)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)		
+		os.Exit(1)
 	}
 	// print module information
 	data, err := json.MarshalIndent(mod, "", "  ")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "failed to marshal json: %v\n", err)
+		os.Exit(1)
 	}
 	fmt.Println(string(data))
 }

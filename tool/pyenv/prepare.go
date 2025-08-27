@@ -10,9 +10,6 @@ func Prepare() {
 	if pyHome == "" {		// use system
 		return
 	}
-	// bin
-	binPath := os.Getenv("PATH")
-	os.Setenv("PATH", pyHome+"/bin:"+binPath)
 	// pkg_config_path
 	pkgConfigPath := os.Getenv("PKG_CONFIG_PATH")
 	os.Setenv("PKG_CONFIG_PATH", pyHome+"/lib/pkgconfig:"+pkgConfigPath)
