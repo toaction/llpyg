@@ -31,9 +31,10 @@ type Config struct {
 }
 
 type library struct {
-	LibName string   `json:"libName"`
-	Depth   int      `json:"depth"`
-	Modules []string `json:"modules"`
+	LibName 	string   	`json:"libName"`
+	LibVersion 	string 		`json:"libVersion"`
+	Depth   	int      	`json:"depth"`
+	Modules 	[]string 	`json:"modules"`
 }
 
 func main() {
@@ -48,11 +49,9 @@ func main() {
 	// get config
 	switch runMode {
 	case "cmd":
-		pyenv.PyEnvCheck(args.Kwarg)		// libName
 		cfg = genConfig(args)
 	case "cfg":
 		cfg = readConfig(args.Kwarg)   		// cfgPath
-		pyenv.PyEnvCheck(cfg.LibName)
 	}
 
 	// init work dir
@@ -102,6 +101,7 @@ func genConfig(args Args) (cfg Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("%s %s is ready\n", lib.LibName, lib.LibVersion)
 	cfg = Config{
 		Name:    lib.Modules[0], // go package name
 		LibName: lib.LibName,
@@ -111,17 +111,17 @@ func genConfig(args Args) (cfg Config) {
 }
 
 func pymodule(libName string, depth int) (lib library, err error) {
-	var out bytes.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd := exec.Command("pymodule", "-d", strconv.Itoa(depth), libName)
-	cmd.Stdout = &out
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		return lib, fmt.Errorf("pymodule %s failed", libName)
+		return lib, fmt.Errorf("get modules from %s failed: %s", libName, stderr.String())
 	}
-	err = json.Unmarshal(out.Bytes(), &lib)
+	err = json.Unmarshal(stdout.Bytes(), &lib)
 	if err != nil {
-		return lib, fmt.Errorf("unmarshal %s failed", libName)
+		return lib, fmt.Errorf("unmarshal %s failed: %s", libName, stderr.String())
 	}
 	return lib, nil
 }

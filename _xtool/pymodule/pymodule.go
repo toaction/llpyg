@@ -2,7 +2,6 @@ package main
 
 
 import (
-	"log"
 	"os"
 	"fmt"
 	"flag"
@@ -20,6 +19,7 @@ func SequenceList(o *py.Object) *py.Object { return nil }
 
 type library struct {
 	LibName 	string 		`json:"libName"`
+	LibVersion  string 		`json:"libVersion"`
 	Depth 		int  		`json:"depth"`
 	Modules 	[]string 	`json:"modules"`
 }
@@ -32,7 +32,7 @@ var libToModule = map[string]string {
 }
 
 
-func GetModuleName(libName string) string {
+func getModuleName(libName string) string {
     if mod, ok := libToModule[libName]; ok {
         return mod
     }
@@ -93,14 +93,21 @@ func main() {
 		Depth: *depth,
 		Modules: []string{},
 	}
-	moduleName := GetModuleName(libraryName)
-	pkg.getModules(moduleName, 1)
-	if len(pkg.Modules) == 0 {
-		log.Fatalf("error: import module failed: %s", moduleName)
+	moduleName := getModuleName(libraryName)
+	mod := py.ImportModule(c.AllocaCStr(moduleName))
+	if mod == nil {
+		fmt.Fprintf(os.Stderr, "%s is not installed or not found\n", libraryName)
+		os.Exit(1)
 	}
+    version := mod.GetAttrString(c.Str("__version__"))
+	if version != nil {
+		pkg.LibVersion = c.GoString(version.CStr())
+	}
+	pkg.getModules(moduleName, 1)
 	data, err := json.MarshalIndent(pkg, "", "  ")
 	if err != nil {
-		log.Fatalf("error: failed to marshal json: %v", err)
+		fmt.Fprintf(os.Stderr, "failed to marshal json: %v\n", err)
+		os.Exit(1)
 	}
 	fmt.Println(string(data))
 }

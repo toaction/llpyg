@@ -15,6 +15,38 @@ func Add(x1 *py.Object, x2 *py.Object) *py.Object
 
 **[llpyg](https://github.com/goplus/llpyg)**：一个面向 Python 库的 LLGo Bindings 自动生成工具。
 
+## 设计决策
+
+### llpyg 是否需要脱离 LLGo ?
+> https://github.com/goplus/llpyg/issues/5
+
+llpyg 面向的是那些需要 LLGo Bindings 的用户，即 LLGo 开发者，因此可以依赖于 LLGo.
+
+llpyg 依赖于 LLGo 的 Python 生态集成能力，该工具的一些子组件如 `pydump` 和 `pymodule` 需要 LLGo 进行编译和安装。
+
+### llpyg 是否需要为用户提供与系统无关的 Python 环境？
+
+> https://github.com/goplus/llpyg/issues/2#issuecomment-3200109475
+
+llpyg 默认使用系统 Python 环境，并不为用户提供 Python 安装及第三方库自动下载的服务。
+
+llpyg 只做 Python 环境的检查操作，当无法检测到系统的 Python 环境或检测到第三方库未安装时，触发 `panic`。
+
+### 要转换的 Python 库的版本是否可以指定？
+
+> https://github.com/goplus/llpyg/issues/8
+
+llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对版本的修改。
+
+用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
+
+### llpyg 是否需要为用户提供指定 Python 路径的功能？
+
+> https://github.com/goplus/llpyg/issues/9
+
+用户可以通过 `PYTHONHOME` 环境变量来指定 Python 路径。 llpyg 并不会提供一个单独的环境变量。
+
+
 ## 安装与使用
 
 ### Dependencies
@@ -23,17 +55,14 @@ func Add(x1 *py.Object, x2 *py.Object) *py.Object
 - [Python 3.12+](https://www.python.org/)
 
 ### How to install
-
-执行安装之前，请确定本地已有 Python 环境:
+执行安装之前，请确保本地已存在 Python 环境。你可以通过 `PYTHONHOME` 来指定 Python 路径：
 ```bash
-python3 --version
+export PYTHONHOME=/path/to/python
 ```
-
-你可以通过两种方式来为 llpyg 提供 Python环境：
-- 通过 `PYTHONHOME` 指定 Python
-- 直接使用系统 Python
-
-> 若使用系统 Python，请确保已正确设置 `PKG_CONFIG_PATH`，LLGo 需要通过此环境变量正确链接到 Python 库的位置。
+若未设置 `PYTHONHOME`，你需要通过 `PKG_CONFIG_PATH` 环境变量来指定 Python 解释器的位置:
+```bash
+export PKG_CONFIG_PATH=/path/to/python/lib/pkgconfig:$PKG_CONFIG_PATH
+```
 
 **Install from source**:
 ```bash
@@ -42,13 +71,11 @@ cd llpyg
 bash install.sh
 ```
 
-
-
 ### Usage
 
-执行命令之前，请确保本地已安装要转换的 Python 第三方库：
+执行命令之前，请确保本地已安装要转换的 Python 第三方库，你可以通过 `PYTHONPATH` 环境变量来添加 Python 库的位置:
 ```bash
-pip3 show lib_name
+export PYTHONPATH=/path/to/lib:$PYTHONPATH
 ```
 你可以选择两种不同的方式来执行命令，分别是：
 - 命令行参数
@@ -114,37 +141,6 @@ func Maximum(x1 *py.Object, x2 *py.Object) *py.Object
 ```
 
 
-## 设计决策
-
-### llpyg 是否需要脱离 LLGo ?
-> https://github.com/goplus/llpyg/issues/5
-
-llpyg 面向的是那些需要 LLGo Bindings 的用户，即 LLGo 开发者，因此可以依赖于 LLGo.
-
-llpyg 依赖于 LLGo 的 Python 生态集成能力，该工具的一些子组件如 `pydump` 和 `pymodule` 需要 LLGo 进行编译，但当 llpyg 安装完成后，无需 LLGo 运行。
-
-### llpyg 是否需要为用户提供与系统无关的 Python 环境？
-
-> https://github.com/goplus/llpyg/issues/2#issuecomment-3200109475
-
-llpyg 默认使用系统 Python 环境，并不为用户提供 Python 安装及第三方库自动下载的服务。
-
-llpyg 只做 Python 环境的检查操作，当无法检测到系统的 Python 环境或检测到第三方库未安装时，触发 `panic`。
-
-### 要转换的 Python 库的版本是否可以指定？
-
-> https://github.com/goplus/llpyg/issues/8
-
-llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对版本的修改。
-
-用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
-
-### llpyg 是否需要为用户提供指定 Python 路径的功能？
-
-> https://github.com/goplus/llpyg/issues/9
-
-用户可以通过 `PYTHONHOME` 环境变量来指定 Python 路径。 llpyg 并不会提供一个单独的环境变量。
-
 
 ## How it works
 
@@ -170,15 +166,6 @@ llpyg/
 - `_xtool`: 需要使用 LLGo 进行编译的子组件
 - `cmd`: 可执行文件，每个子目录对应一个可执行文件
 - `tool`: 仅用 Go 即可运行的子组件，应包含单元测试
-
-### Python 环境检查
-代码： `/tool/pyenv/check.go`
-
-llpyg 目前通过执行命令来检查 Python 环境，检查步骤：
-
-1. 使用 `python3 --version` 命令检查 Python 环境及版本(>=3.12)
-2. 使用 `pip3 show lib_name` 命令检查第三方库是否已安装
-3. 使用 `python3 -c "import lib_name"` 命令检查主模块是否可导入(依赖完整)
 
 
 ### 函数签名解析
