@@ -152,11 +152,10 @@ func initWorkDir(args *Args, cfg Config) {
 		log.Fatalf("error: failed to write config file %s: %v\n", args.OutputDir, err)
 	}
 	// init go module
-	var moduleName string
 	if args.ModName == "" {
-		moduleName = cfg.Name
+		args.ModName = cfg.Name
 	}
-	if err := initGoModule(moduleName, args.OutputDir); err != nil {
+	if err := initGoModule(args.ModName, args.OutputDir); err != nil {
 		log.Fatal(err)
 	}
 }
