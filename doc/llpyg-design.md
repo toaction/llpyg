@@ -30,7 +30,7 @@ llpyg 依赖于 LLGo 的 Python 生态集成能力，该工具的一些子组件
 
 llpyg 默认使用系统 Python 环境，并不为用户提供 Python 安装及第三方库自动下载的服务。
 
-llpyg 只做 Python 环境的检查操作，当无法检测到系统的 Python 环境或检测到第三方库未安装时，触发 `panic`。
+llpyg 只做 Python 环境的检查操作，当检测到系统的 Python 环境不匹配或检测到第三方库未安装时，触发 `panic`。
 
 ### 要转换的 Python 库的版本是否可以指定？
 
@@ -52,19 +52,18 @@ llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对
 ### Dependencies
 
 - [LLGo](https://github.com/goplus/llgo)
-- [Python 3.12+](https://www.python.org/)
+- [Python 3.12](https://www.python.org/)
+
+```bash
+# llgo root
+export LLGO_ROOT=/path/to/llgo
+
+# python3.12
+brew install python@3.12
+```
 
 ### How to install
-执行安装之前，请确保本地已存在 Python 环境。你可以通过 `PYTHONHOME` 来指定 Python 路径：
-```bash
-export PYTHONHOME=/path/to/python
-```
-若未设置 `PYTHONHOME`，你需要通过 `PKG_CONFIG_PATH` 环境变量来指定 Python 解释器的位置:
-```bash
-export PKG_CONFIG_PATH=/path/to/python/lib/pkgconfig:$PKG_CONFIG_PATH
-```
-
-**Install from source**:
+目前仅支持从源码安装，**Install from source**:
 ```bash
 git clone https://github.com/toaction/llpyg.git
 cd llpyg
@@ -73,7 +72,13 @@ bash install.sh
 
 ### Usage
 
-执行命令之前，请确保本地已安装要转换的 Python 第三方库，你可以通过 `PYTHONPATH` 环境变量来添加 Python 库的位置:
+执行命令之前，请确保本地已安装Python(3.12)和要转换的第三方库。
+
+你可以通过 `PYTHONHOME` 指定 Python 路径：
+```bash
+export PYTHONHOME=/path/to/python
+```
+可以通过 `PYTHONPATH` 环境变量来添加第三方库的位置:
 ```bash
 export PYTHONPATH=/path/to/lib:$PYTHONPATH
 ```
@@ -198,22 +203,17 @@ llpyg/
 ### 指定 Python 路径
 当用户系统中存在 `PYTHONHOME` 环境变量时，llpyg 会优先使用该环境变量指定的 Python 路径。
 
-在安装 llpyg 时，需要用到 LLGo 的 Python 集成能力，此时需要为 LLGo 指定 Python 解释器的位置。因此在安装时，需要设置一些临时的系统环境变量：
-```bash
-# install.sh
-
-pyHome=$PYTHONHOME
-if [ -n "$pyHome" ]; then
-    export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
-fi
-```
-现阶段 Python 库的位置是动态指定的，在每次运行时，都需要重新设置环境变量。
-```bash
-# /tool/pyenv/prepare.go
-
-export PATH="$pyHome/bin:$PATH"
-export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
-export DYLD_LIBRARY_PATH="$pyHome/lib:$DYLD_LIBRARY_PATH"
+若没有指定 `PYTHONHOME` 环境变量时，llpyg 会使用系统默认的 Python 路径：
+```go
+names := []string{"python-3.12", "python-3.12-embed", "python3"}
+for _, name := range names {
+    cmd := exec.Command("pkg-config", "--variable=libdir", name)
+    out, err := cmd.Output()
+    libPath := strings.TrimSpace(string(out))
+    pyHome = libPath + "/../"
+    os.Setenv("PYTHONHOME", pyHome)
+    break
+}
 ```
 
 ### 符号信息提取
