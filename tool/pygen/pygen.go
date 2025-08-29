@@ -91,6 +91,9 @@ func pydump(moduleName string) (mod module, err error) {
 func createGoPackage(mod module) (ctx *context) {
 	parts := strings.Split(mod.Name, ".")
 	pkgName := parts[len(parts)-1]
+	if goKeywords[pkgName] {
+		pkgName = pkgName + "_"
+	}
 	pkg := gogen.NewPackage("", pkgName, nil)
 	pkg.Import("unsafe").MarkForceUsed(pkg)      // import _ "unsafe"
 	py := pkg.Import("github.com/goplus/lib/py") // import "github.com/goplus/lib/py"
