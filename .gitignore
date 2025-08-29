@@ -17,3 +17,6 @@ test*
 
 # cfg
 **/*.cfg
+
+# go.work
+go.work

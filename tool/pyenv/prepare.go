@@ -10,9 +10,6 @@ func Prepare() {
 	if pyHome == "" {		// use system
 		return
 	}
-	// pkg_config_path
-	pkgConfigPath := os.Getenv("PKG_CONFIG_PATH")
-	os.Setenv("PKG_CONFIG_PATH", pyHome+"/lib/pkgconfig:"+pkgConfigPath)
 	// lib
 	switch runtime.GOOS {
 	case "darwin":
