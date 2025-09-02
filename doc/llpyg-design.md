@@ -1,8 +1,10 @@
 ## 基本介绍
 
-**[LLGo](https://github.com/goplus/llgo)**：一个基于LLVM的 Go 编译器，以便更好地与 C 和 Python 生态集成。
+**[LLGo](https://github.com/goplus/llgo)**：一个基于 LLVM 的 Go 编译器，以便更好地与 C 和 Python 生态集成。
 
-**LLGo Bindings**：为了能够在 Go 代码中调用其他语言，LLGo 需要先将其他语言的符号进行映射，映射为 Go 符号，我们将这种一一映射的符号声明称之为 LLGo Bindings. 例如 Python 的 `numpy.add` 函数:
+**LLGo Bindings**：为了能够在 Go 代码中调用其他语言，需要将其他语言的符号映射为 Go 符号，形成接口，LLGo 通过该接口来实现对其他语言的调用。我们将这种一一映射的接口称为 LLGo Bindings，即 LLGo 对其他语言的绑定代码。
+
+以 Python 的 `numpy.add` 函数为例：
 ```Python
 numpy.add(x1, x2, /, out=None, *, where=True, casting='same_kind', order='K', dtype=None, subok=True[, signature, extobj])
 ```
@@ -20,7 +22,7 @@ func Add(x1 *py.Object, x2 *py.Object) *py.Object
 ### llpyg 是否需要脱离 LLGo ?
 > https://github.com/goplus/llpyg/issues/5
 
-llpyg 面向的是那些需要 LLGo Bindings 的用户，即 LLGo 开发者，因此可以依赖于 LLGo.
+llpyg 面向的是那些需要 LLGo Bindings 的用户，即 LLGo 开发者，因此可以依赖于 LLGo。
 
 llpyg 依赖于 LLGo 的 Python 生态集成能力，该工具的一些子组件如 `pydump` 和 `pymodule` 需要 LLGo 进行编译和安装。
 
@@ -28,17 +30,13 @@ llpyg 依赖于 LLGo 的 Python 生态集成能力，该工具的一些子组件
 
 > https://github.com/goplus/llpyg/issues/2#issuecomment-3200109475
 
-llpyg 默认使用系统 Python 环境，并不为用户提供 Python 安装及第三方库自动下载的服务。
-
-llpyg 只做 Python 环境的检查操作，当无法检测到系统的 Python 环境或检测到第三方库未安装时，触发 `panic`。
+llpyg 默认使用系统 Python 或用户指定的 Python，并不为用户提供 Python 安装及第三方库自动下载的服务。
 
 ### 要转换的 Python 库的版本是否可以指定？
 
 > https://github.com/goplus/llpyg/issues/8
 
-llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对版本的修改。
-
-用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
+llpyg 使用的是用户已经安装好的 Python 库的版本。用户若想转换不同版本的 Python 库，需要手动更改已安装的库。
 
 ### llpyg 是否需要为用户提供指定 Python 路径的功能？
 
@@ -46,58 +44,33 @@ llpyg 使用的是用户已经安装好的 Python 库的版本，并不支持对
 
 用户可以通过 `PYTHONHOME` 环境变量来指定 Python 路径。 llpyg 并不会提供一个单独的环境变量。
 
+## 架构设计
 
-## 安装与使用
+### 输入输出
 
-### Dependencies
+- 输入: Python 库名称
+- 输出: LLGo Bindings 代码
 
-- [LLGo](https://github.com/goplus/llgo)
-- [Python 3.12+](https://www.python.org/)
-
-### How to install
-执行安装之前，请确保本地已存在 Python 环境。你可以通过 `PYTHONHOME` 来指定 Python 路径：
-```bash
-export PYTHONHOME=/path/to/python
-```
-若未设置 `PYTHONHOME`，你需要通过 `PKG_CONFIG_PATH` 环境变量来指定 Python 解释器的位置:
-```bash
-export PKG_CONFIG_PATH=/path/to/python/lib/pkgconfig:$PKG_CONFIG_PATH
-```
-
-**Install from source**:
-```bash
-git clone https://github.com/toaction/llpyg.git
-cd llpyg
-bash install.sh
-```
-
-### Usage
-
-执行命令之前，请确保本地已安装要转换的 Python 第三方库，你可以通过 `PYTHONPATH` 环境变量来添加 Python 库的位置:
-```bash
-export PYTHONPATH=/path/to/lib:$PYTHONPATH
-```
-你可以选择两种不同的方式来执行命令，分别是：
-- 命令行参数
-- llpyg.cfg 配置文件
-
-**1. 命令行参数**
-
+**命令输入执行**
 ```bash
 llpyg [-o ouput_dir] [-mod mod_name] [-d module_depth] py_lib_name
 ```
+参数说明：
+- `-o`: 输出目录，默认值为 `./test`
+- `-mod`: 生成 Go 模块名称，默认值为空
+- `-d`: 获取 Python 库的模块的深度，默认值为 1
+- `py_lib_name`: Python 库名称
 
-- `-o`: LLGo Bindings output dir, default `./test`.
-- `-mod`: Output Go module name, default `py_lib_name`.
-- `-d`: Extract Python module max depth, default `1`.
-
-**2. llpyg.cfg 文件**
-
+**配置文件输入执行**
 ```bash
-llpyg [-o ouput_dir] [-mod mod_name] llpyg.cfg
+llpyg [-o output_dir] [-mod mod_name] llpyg.cfg
 ```
-llpyg.cfg 是配置文件，可以对内容进行修改，llpyg将会根据该文件执行程序。示例：
+参数说明：
+- `-o`: 输出目录，默认值为 `./test`
+- `-mod`: 生成 Go 模块名称，默认值为空
+- `llpyg.cfg`: 配置文件路径
 
+配置文件示例：
 ```json
 {
   "name": "numpy",
@@ -108,128 +81,131 @@ llpyg.cfg 是配置文件，可以对内容进行修改，llpyg将会根据该�
 }
 ```
 
-- `name`: Go package name.
-- `libName`: Python library name.
-- `modules`: Extract Python modules.
-
-### Output
-
-以 `numpy` 为例 (`-d=1`)，输出目录结构：
-
+**程序输出**
 ```go
 numpy
+├── numpy.go    // 主模块 LLGo Bindings 文件
+├── random
+│   └── random.go    // 子模块 LLGo Bindings 文件
 ├── go.mod
 ├── go.sum
-├── llpyg.cfg				// config 配置文件
-└── numpy.go				// LLGo Bindings
+└── llpyg.cfg    // 配置文件
 ```
-
-`numpy.go` 文件 (LLGo Bindings)：
-
-```go
-package numpy
-
-import (
-	"github.com/goplus/lib/py"
-	_ "unsafe"
-)
-
-const LLGoPackage = "py.numpy"
-
-//go:linkname Maximum py.maximum
-func Maximum(x1 *py.Object, x2 *py.Object) *py.Object
-```
-
-
-
-## How it works
 
 ### 项目结构
-
 ```go
-llpyg/
-├── _xtool/
-│   ├── pkg1/
-│   └── pkg2/
-├── cmd/
-│   └── llpyg/
-│       └── llpyg.go		
-├── tool/
-│   ├── pkg1/
-│   └── pkg2/
+llpyg
+├── _xtool
+│   ├── pydump
+│   └── pymodule
+├── cmd
+│   └── llpyg
+├── doc
+├── tool
+│   ├── pyenv
+│   ├── pygen
+│   └── pysig
 ├── go.mod
 ├── go.sum
+├── install.sh
 ├── README.md
 └── LICENSE
 ```
 
-- `_xtool`: 需要使用 LLGo 进行编译的子组件
-- `cmd`: 可执行文件，每个子目录对应一个可执行文件
-- `tool`: 仅用 Go 即可运行的子组件，应包含单元测试
+- `_xtool`: 需要使用 LLGo 进行编译和安装的子组件
+- `cmd`: llpyg 可执行文件
+- `tool`: 子模块，不依赖 LLGo
+- `doc`: 存放项目文档
 
 
-### 函数签名解析
-代码目录： `/tool/pysig`
+### 模块划分
 
-从签名中提取四个信息：`Name`，`Type`, `DefaultValue`, `Optional`
-
-支持可选项解析：
-```Python
-([start, ]stop, [step, ]dtype=None, *, device=None, like=None)
+```text
+_xtool
+├── pydump
+└── pymodule
 ```
-支持列表参数解析：
-```Python
-( (a1, a2, ...), axis=0, out=None, dtype=None, casting=\"same_kind\" )
+该目录下的 LLGo 程序安装后会放在 `$GOPATH/bin` 目录下。
+- `pymodule`: 获取 Python 库的主模块及多级子模块名称
+- `pydump`: 获取 Python 库的符号信息，包括函数、类等信息
+
+```text
+cmd
+└── llpyg
 ```
-支持复杂参数类型及默认值解析：
-```Python
-(start: 'Union[int, float]', stop: 'Union[int, float]', /, num: 'int', *, dtype: 'Optional[Dtype]' = None, device: 'Optional[Device]' = None, endpoint: 'bool' = True) -> 'Array'
+- `llpyg`: llpyg 入口程序
+
+```text
+tool
+├── pyenv
+├── pygen
+└── pysig
 ```
-解析结果：
+
+- `pyenv`: 设置 Python 路径，对环境进行检查
+- `pysig`: 解析 Python 函数和方法签名
+- `pygen`: 调用 `pydump` 和 `pysig`，生成 Go 代码
+
+### 执行流程
+
+llpyg 执行流程：
+
+1. 执行 `pyenv`，设置 Python 路径，对环境进行检查
+2. 执行 `pymodule`，获取模块名，生成 llpyg.cfg 配置文件
+3. 根据 `llpyg.cfg` 配置文件，逐模块执行 `pygen`，生成 Go 代码
+
+Go 代码生成流程：
+
+1. 执行 `pydump`，获取 Python 库的符号信息
+2. 执行 `pysig`，解析 Python 函数和方法签名
+3. 调用 `gogen`，生成 Go 代码
+
+
+### 模块接口
+**`pymodule` 模块接口**：
+```bash
+pymodule [-d <depth>] <libraryName>
+```
+参数说明：
+- `-d <depth>`: 获取模块的深度，默认值为 1
+- `<libraryName>`: Python 库名称
+
+返回值（以 `numpy` 库为例）：
 ```json
 {
-    "name": "start",
-    "type": "'Union[int, float]'",
-    "defVal": "",
-    "optional": false
-},
+  "libName": "numpy",
+  "libVersion": "1.26.0",
+  "depth": 2,
+  "modules": [
+    "numpy",
+    "numpy.array_api",
+    "numpy.random",
+    ...
+  ]
+}
 ```
 
-### 指定 Python 路径
-当用户系统中存在 `PYTHONHOME` 环境变量时，llpyg 会优先使用该环境变量指定的 Python 路径。
-
-在安装 llpyg 时，需要用到 LLGo 的 Python 集成能力，此时需要为 LLGo 指定 Python 解释器的位置。因此在安装时，需要设置一些临时的系统环境变量：
+**`pydump` 模块接口：**
 ```bash
-# install.sh
-
-pyHome=$PYTHONHOME
-if [ -n "$pyHome" ]; then
-    export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
-fi
+pydump <moduleName>
 ```
-现阶段 Python 库的位置是动态指定的，在每次运行时，都需要重新设置环境变量。
-```bash
-# /tool/pyenv/prepare.go
+参数说明：
+- `<moduleName>`: Python 模块名称
 
-export PATH="$pyHome/bin:$PATH"
-export PKG_CONFIG_PATH="$pyHome/lib/pkgconfig:$PKG_CONFIG_PATH"
-export DYLD_LIBRARY_PATH="$pyHome/lib:$DYLD_LIBRARY_PATH"
+返回值：
+```json
+{
+  "name": "numpy",
+  "items": [
+    {
+      "name": "__name__",
+      "type": "str",
+      "doc": "...",
+      "sig": ""
+    },
+    ...
+  ]
+}
 ```
-
-### 符号信息提取
-代码目录： `/_xtool/pydump`
-```bash
-pydump py_module_name
-```
-从 Python 模块中提取符号信息，包括：
-- Name
-- Type
-- Doc
-- Signature
-
-对于函数，签名的提取方法：
-1. 利用反射 `inspect.signature` 获取 Python 函数签名
-2. 从文档中获取函数签名，该方法适用于 C 编写的内置函数
-3. 将签名统一设置为 `(*args, **kwargs)`
 
 
