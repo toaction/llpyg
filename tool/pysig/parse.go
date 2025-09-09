@@ -1,8 +1,6 @@
 package pysig
 
-import (
-	"strings"
-)
+import "strings"
 
 type Arg struct {
 	Name     string `json:"name"`
@@ -12,168 +10,149 @@ type Arg struct {
 }
 
 func Parse(sig string) (args []*Arg) {
-	sig = strings.TrimSpace(sig)
+	// get signature between ()
+	end := findMatchingBracket(sig, '(', ')')
+	if end == -1 {
+		return
+	}
+	sig = sig[:end+1]
 	sig = strings.TrimPrefix(sig, "(")
 
-	for len(sig) > 0 && sig[0] != ')' {
-		// Skip leading whitespace and commas
-		sig = strings.TrimLeft(sig, " \t,")
-		if len(sig) == 0 || sig[0] == ')' {
-			break
-		}
-
-		// optional parameters [param1, param2, ...]
-		if sig[0] == '[' {
-			bracketEnd := findMatchingBracket(sig, '[', ']')
-			if bracketEnd > 0 {
-				bracketContent := sig[1:bracketEnd]
-				bracketContent = "(" + bracketContent + ")"
-				optArgs := Parse(bracketContent)
-				for _, arg := range optArgs {
-					arg.Optional = true
-				}
-				args = append(args, optArgs...)
-				sig = sig[bracketEnd+1:]
-				continue
-			}
-		}
-
-		// complex parameters (a1, a2, ...)
-		if sig[0] == '(' {
-			parenEnd := findMatchingBracket(sig, '(', ')')
-			if parenEnd > 0 {
-				paramName := strings.TrimSpace(sig[:parenEnd+1])
-				arg := &Arg{Name: paramName}
-				args = append(args, arg)
-				sig = sig[parenEnd+1:]
-
-				// Check for assignment after the parentheses
-				sig = strings.TrimLeft(sig, " \t")
-				if len(sig) > 0 && sig[0] == '=' {
-					sig = sig[1:]
-					arg.DefVal, sig = parseDefVal(sig)
-				}
-				continue
-			}
-		}
-
-		// Normal parameter parsing
-		pos := strings.IndexAny(sig, ",:=)[")
-		if pos <= 0 {
-			// Handle case where we reach end of string
-			if len(sig) > 0 {
-				name := strings.TrimSpace(sig)
-				if name != "" && name != ")" {
-					args = append(args, &Arg{Name: name})
-				}
-			}
+	for {
+		sig = strings.TrimSpace(sig)
+		if len(sig) == 0 {
 			return
 		}
-
-		argName := strings.TrimSpace(sig[:pos])
-		if argName == "" {
+		if sig[0] == '[' {		// optional args
+			var optArgs []*Arg
+			optArgs, sig = parseOptArgs(sig)
+			for _, arg := range optArgs {
+				arg.Optional = true
+			}
+			args = append(args, optArgs...)
+			continue
+		}
+		if sig[0] == '(' {     // (a1, a2, ...)
+			pos := findMatchingBracket(sig, '(', ')')
+			if pos > 0 {
+				name := strings.TrimSpace(sig[:pos+1])
+				arg := &Arg{Name: name}
+				args = append(args, arg)
+				sig = sig[pos+1:]
+			}
+			continue
+		}
+		// (a) (, a, ) (a:int) (a=1) (a[, b])
+		pos := strings.IndexAny(sig, ",:=[)")
+		if pos < 0 || (pos == 0 && sig[0] == ')') {
+			return
+		}
+		name := strings.TrimSpace(sig[:pos])
+		if name == "" {
 			sig = sig[1:]
 			continue
 		}
-
-		if strings.TrimSpace(argName) == "..." {
-			argName = "**kwargs"
+		if name == "..." {
+			length := len(args)
+			if length > 0 && args[length-1].DefVal != "" {
+				name = "**kwargs"
+			}else {
+				name = "**args"
+			}
 		}
-
-		arg := &Arg{Name: argName}
+		arg := &Arg{Name: name}
 		args = append(args, arg)
-		c := sig[pos]
-		sig = sig[pos+1:]
-
-		switch c {
+		split := sig[pos]    // , : = ) [
+		switch split {
 		case ',':
+			sig = sig[pos+1:]
 			continue
 		case ':':
-			arg.Type, sig = parseType(sig)
-			if strings.HasPrefix(strings.TrimLeft(sig, " \t"), "=") {
-				sig = strings.TrimLeft(sig, " \t")
+			arg.Type, sig = parseType(sig[pos+1:])
+			if sig[0] == '=' {
 				arg.DefVal, sig = parseDefVal(sig[1:])
 			}
 		case '=':
-			arg.DefVal, sig = parseDefVal(sig)
+			arg.DefVal, sig = parseDefVal(sig[pos+1:])
+		case '[':
+			var optArgs []*Arg
+			optArgs, sig = parseOptArgs(sig[pos:])
+			for _, arg := range optArgs {
+				arg.Optional = true
+			}
+			args = append(args, optArgs...)
+			continue
 		case ')':
 			return
-		case '[':
-			// Backtrack - this [ should be handled at the beginning of the loop
-			sig = "[" + sig
-			continue
 		}
+		sig = strings.TrimPrefix(sig, ",")
+	}
+}
+
+
+func parseOptArgs(sig string) (optArgs []*Arg, newSig string) {
+	end := findMatchingBracket(sig, '[', ']')
+	if end == -1 {
+		return
+	}
+	optArgs = Parse("(" + sig[1:end] + ")")
+	newSig = sig[end+1:]
+	return
+}
+
+
+
+
+// default value pairs
+var pairs = map[byte]byte {
+	'(': ')',
+	'[': ']',
+	'{': '}',
+}
+
+
+func parseDefVal(sig string) (defVal string, newSig string) {
+	sig = strings.TrimSpace(sig)
+	// list, tuple, dict
+	if close, exists := pairs[sig[0]]; exists {
+		idx := findMatchingBracket(sig, sig[0], close)
+		if idx > 0 {
+			defVal = strings.TrimSpace(sig[0:idx+1])
+			newSig = sig[idx+1:]
+			return
+		}
+	}
+	pos := strings.IndexAny(sig, "[,)")
+	if pos > 0 {
+		defVal = strings.TrimSpace(sig[:pos])
+		newSig = sig[pos:]
+		return
 	}
 	return
 }
 
-const (
-	allSpecials = "([<'\""
-)
 
-var pairStops = map[byte]string{
-	'(':  ")" + allSpecials,
-	'[':  "]" + allSpecials,
-	'<':  ">" + allSpecials,
-	'\'': "'" + allSpecials,
-	'"':  "\"",
-}
-
-func parseText(sig string, stops string) (left string) {
-	for {
-		pos := strings.IndexAny(sig, stops)
-		if pos < 0 {
-			return sig
-		}
-		c := sig[pos]
-		if c != stops[0] {
-			if pstop, ok := pairStops[c]; ok {
-				sig = strings.TrimPrefix(parseText(sig[pos+1:], pstop), pstop[:1])
-				continue
-			}
-		}
-		return sig[pos:]
+func parseType(sig string) (typeStr string, newSig string) {
+	right := strings.IndexAny(sig, "=,)[")
+	if right < 0 {
+		return "", sig
 	}
-}
-
-func parseDefValText(sig string, stops string) (left string) {
-	for {
-		pos := strings.IndexAny(sig, stops)
-		if pos < 0 {
-			return sig
+	if sig[right] == '[' { 		// 'Union[int, float]'
+		tmp := strings.TrimSpace(sig[right+1:])
+		if len(tmp) > 0 && tmp[0] != ',' {
+			length := findMatchingBracket(sig[right:], '[', ']')
+			right = right + length
+			idx := strings.IndexAny(sig[right:], "=,)")
+			right = right + idx
 		}
-		c := sig[pos]
-		// Special handling for '[' when parsing default values
-		if c == '[' && strings.Contains(stops, "[") {
-			return sig[pos:]
-		}
-		if c != stops[0] {
-			if pstop, ok := pairStops[c]; ok {
-				sig = strings.TrimPrefix(parseDefValText(sig[pos+1:], pstop), pstop[:1])
-				continue
-			}
-		}
-		return sig[pos:]
 	}
+	typeStr = strings.TrimSpace(sig[:right])
+	newSig = sig[right:]
+	return
 }
 
-// stops: "=,)"
-func parseType(sig string) (string, string) {
-	left := parseText(sig, "=,)"+allSpecials)
-	return resultOf(sig, left), left
-}
 
-// stops: ",)"
-func parseDefVal(sig string) (string, string) {
-	left := parseDefValText(sig, ",)["+allSpecials)
-	return resultOf(sig, left), left
-}
-
-func resultOf(sig, left string) string {
-	return strings.TrimSpace(sig[:len(sig)-len(left)])
-}
-
-// findMatchingBracket finds the matching closing bracket for the opening bracket at position 0
+// start=0, return end index, else return -1
 func findMatchingBracket(sig string, open, close byte) int {
 	if len(sig) == 0 || sig[0] != open {
 		return -1
@@ -193,4 +172,3 @@ func findMatchingBracket(sig string, open, close byte) int {
 	}
 	return -1
 }
-
