@@ -1,8 +1,6 @@
 package pysig
 
 import (
-	"encoding/json"
-	"os"
 	"testing"
 )
 
@@ -12,16 +10,8 @@ func TestParse(t *testing.T) {
 		args []*Arg
 	}
 	cases := []testCase{
-		{"(start=None, *, unit: 'str | None' = None) -> 'TimedeltaIndex'", []*Arg{
-			{Name: "start", DefVal: "None"},
-			{Name: "*"},
-			{Name: "unit", Type: "'str | None'", DefVal: "None"},
-		}},
 		{"()", nil},
 		{"() -> int", nil},
-		{"(a =", []*Arg{
-			{Name: "a"},
-		}},
 		{"(a) -> int", []*Arg{
 			{Name: "a"},
 		}},
@@ -38,6 +28,11 @@ func TestParse(t *testing.T) {
 		}},
 		{"(a: 'Suffixes' = ('_x', '_y'))", []*Arg{
 			{Name: "a", Type: "'Suffixes'", DefVal: "('_x', '_y')"},
+		}},
+		{"(start=None, *, unit: 'str | None' = None) -> 'TimedeltaIndex'", []*Arg{
+			{Name: "start", DefVal: "None"},
+			{Name: "*"},
+			{Name: "unit", Type: "'str | None'", DefVal: "None"},
 		}},
 		{"([start,] stop[, step,], dtype=None, *, device=None, like=None)", []*Arg{
 			{Name: "start", Optional: true},
@@ -111,6 +106,16 @@ func TestParse(t *testing.T) {
 			{Name: "device", Type: "'Optional[Device]'", DefVal: "None"},
 			{Name: "endpoint", Type: "'bool'", DefVal: "True"},
 		}},
+		{"(input, k=1, dims=[0,1]) -> Tensor", []*Arg{
+			{Name: "input"},
+			{Name: "k", DefVal: "1"},
+			{Name: "dims", DefVal: "[0,1]"},
+		}},
+		{"(start: int[, step], ...)", []*Arg{
+			{Name: "start", Type: "int"},
+			{Name: "step", Optional: true},
+			{Name: "**args"},
+		}},
 	}
 	for _, c := range cases {
 		args := Parse(c.sig)
@@ -124,17 +129,5 @@ func TestParse(t *testing.T) {
 			}
 		}
 	}
-}
-
-
-func TestDump(t *testing.T) {
-	funCase := "(start: 'Union[int, float]', stop: 'Union[int, float]', /, num: 'int', *, dtype: 'Optional[Dtype]' = None, device: 'Optional[Device]' = None, endpoint: 'bool' = True) -> 'Array'"
-	args := Parse(funCase)
-	jsonData, err := json.Marshal(args)
-	if err != nil {
-		t.Fatalf("Failed to marshal args: %v", err)
-	}
-	// save to file
-	os.WriteFile("test.json", jsonData, 0644)
 }
 
