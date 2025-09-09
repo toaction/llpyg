@@ -44,6 +44,58 @@ llpyg 使用的是用户已经安装好的 Python 库的版本。用户若想转
 
 用户可以通过 `PYTHONHOME` 环境变量来指定 Python 路径。 llpyg 并不会提供一个单独的环境变量。
 
+### 对于 Python Class, llpyg 是如何处理的？
+
+> https://github.com/goplus/llpyg/issues/14
+
+我们从 Python 模块中提取以下类符号信息：
+- 类名
+- 继承关系
+- 类属性
+- 类方法
+- 静态方法
+- `__init__` 方法
+- 实例方法
+- 实例属性
+- 特殊方法
+
+**对于 Class**，我们将其转为结构体，通过嵌入实现继承关系（目前仅支持单继承），通过 `new` 方法实例化：
+```go
+/* Animal class */
+type Animal py.Object
+
+//llgo:link NewAnimal py.Animal
+func NewAnimal(name string) *Animal {return nil}
+
+
+/* Dog class */
+type Dog struct {
+    Animal  // inherit  
+}
+
+//llgo:link NewDog py.Dog
+func NewDog(name *py.Object, age *py.Object) *Dog {return nil}
+```
+
+**对于方法**，我们将类方法、静态方法、实例方法、特殊方法都统一转为结构体方法，用户通过 `instance.method` 方式调用：
+```go
+//llgo:link (*Dog).Speak py.method.speak
+func (d *Dog) Speak() *py.Object {return nil}
+
+//llgo:link (*Dog).Str py.method.__str__
+func (d *Dog) Str() *py.Object {return nil}
+```
+
+**对于属性**，我们将其拆分为了 `setAttr` 和 `getAttr` 方法：
+```go
+//llgo:link (*Dog).GetAge py.getAttr.age
+func (d *Dog) GetAge() *py.Object {return nil}
+
+//llgo:link (*Dog).SetAge py.setAttr.age
+func (d *Dog) SetAge(age *py.Object) c.Int {return 0}
+```
+
+
 ## 架构设计
 
 ### 输入输出
@@ -180,7 +232,6 @@ pymodule [-d <depth>] <libraryName>
     "numpy",
     "numpy.array_api",
     "numpy.random",
-    ...
   ]
 }
 ```
@@ -203,7 +254,6 @@ pydump <moduleName>
       "doc": "...",
       "sig": ""
     },
-    ...
   ]
 }
 ```
