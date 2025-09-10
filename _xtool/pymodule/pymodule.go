@@ -13,7 +13,7 @@ import (
 )
 
 //go:linkname SequenceList C.PySequence_List
-func SequenceList(o *py.Object) *py.Object { return nil }
+func SequenceList(o *py.Object) *py.Object
 
 
 
