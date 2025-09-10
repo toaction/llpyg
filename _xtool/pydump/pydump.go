@@ -23,23 +23,29 @@ type base struct {
 	Module 	string `json:"module"`
 }
 
+type property struct {
+	Name 	string `json:"name"`
+	Getter 	string `json:"getter"`			// getAttr sig
+	Setter 	string `json:"setter"`			// setAttr sig
+}
+
 type class struct {
 	Name 			string 		`json:"name"`
 	Doc 			string 		`json:"doc"`
 	Bases 			[]*base 	`json:"base"`
-	Attributes 		[]string 	`json:"attributes"`
-	Properties 		[]string 	`json:"properties"`
-	SpecialMethods 	[]string 	`json:"specialMethods"`
+	Properties 		[]*property `json:"properties"`
 	InitMethod 		*symbol 	`json:"initMethod"`
-	InstanceMethods []*symbol 	`json:"instanceMethods"`		// include special methods
+	InstanceMethods []*symbol 	`json:"instanceMethods"`		// include override special methods (__name__)
 	ClassMethods 	[]*symbol 	`json:"classMethods"`
 	StaticMethods 	[]*symbol 	`json:"staticMethods"`
+	// TODO: attributes
 }
 
 type module struct {
 	Name  		string    	`json:"name"`
 	Functions 	[]*symbol 	`json:"functions"`
 	Classes 	[]*class 	`json:"classes"`
+	//TODO: global variables
 }
 
 
@@ -107,6 +113,25 @@ func parseMethod(val *py.Object, name string, typeName string) *symbol {
 }
 
 
+func parseProperty(val *py.Object, name string) *property {
+	property := &property{Name: name}
+	fget := val.GetAttrString(c.Str("fget"))
+	if fget != nil {
+		sig := inspect.Signature(fget)
+		if sig != nil {
+			property.Getter = c.GoString(sig.Str().CStr())
+		}
+	}
+	fset := val.GetAttrString(c.Str("fset"))
+	if fset != nil {
+		sig := inspect.Signature(fset)
+		if sig != nil {
+			property.Setter = c.GoString(sig.Str().CStr())
+		}
+	}
+	return property
+}
+
 
 // parse class symbol
 func parseClass(clsObj *py.Object, moduleName string) *class {
@@ -158,9 +183,10 @@ func parseClass(clsObj *py.Object, moduleName string) *class {
 			sym := parseMethod(val, name, typeName)
 			cls.StaticMethods = append(cls.StaticMethods, sym)
 		case "property":
-			cls.Properties = append(cls.Properties, name)
+			property := parseProperty(val, name)
+			cls.Properties = append(cls.Properties, property)
 		default:
-			cls.Attributes = append(cls.Attributes, name)
+			// TODO: attributes
 		}
 	}
 	return cls
@@ -213,6 +239,7 @@ func pydump(moduleName string) (*module, error) {
 			}
 			continue
 		}
+		// TODO: global variables
 	}
 	return modInstance, nil
 }
