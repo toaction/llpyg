@@ -1,0 +1,10 @@
+# macOS related
+**/.DS_Store
+**/.DS_Store?
+
+# ide related
+**/.vscode/
+**/.idea/
+
+# test
+**/test
