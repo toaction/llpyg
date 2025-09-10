@@ -26,7 +26,7 @@ bash install.sh
 **1. 命令行参数**
 
 ```bash
-llpyg [-o ouput_dir] [-mod mod_name] [-d module_depth] py_lib_name
+llpyg [-o output_dir] [-mod mod_name] [-d module_depth] py_lib_name
 ```
 
 - `-o`: LLGo Bindings output dir, default `./test`.
@@ -53,5 +53,5 @@ llpyg.cfg 是配置文件，可以对内容进行修改，llpyg将会根据该�
 
 修改好后，执行命令：
 ```bash
-llpyg [-o ouput_dir] [-mod mod_name] cfg_path
+llpyg [-o output_dir] [-mod mod_name] cfg_path
 ```
