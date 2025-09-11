@@ -63,30 +63,21 @@ func (ctx *context) genClasses(pkg *gogen.Package, classes []*class, moduleName 
 
 
 func (ctx *context) genStruct(pkg *gogen.Package, cls *class, hasParent bool) {
-	switch hasParent {
-	case false:
-		// inherit py.Object
-		structType := pkg.NewTypeDefs().NewType(ctx.genName(cls.Name, -1))
-		structType.InitType(pkg, types.NewStruct(
-			[]*types.Var{
-				types.NewVar(0, pkg.Types, "", ctx.obj),
-			},
-			nil,
-		))
-		ctx.structsMap[cls.Name] = structType.Type()
-		ctx.structsList = append(ctx.structsList, cls.Name)
-	case true:
-		// inherit defined class
-		structType := pkg.NewTypeDefs().NewType(ctx.genName(cls.Name, -1))
-		structType.InitType(pkg, types.NewStruct(
-			[]*types.Var{
-				types.NewVar(0, pkg.Types, "", ctx.structsMap[cls.Bases[0].Name]),
-			},
-			nil,
-		))
-		ctx.structsMap[cls.Name] = structType.Type()
-		ctx.structsList = append(ctx.structsList, cls.Name)
+	var baseType types.Type
+	if hasParent {
+		baseType = ctx.structsMap[cls.Bases[0].Name]
+	} else {
+		baseType = ctx.obj
 	}
+	structType := pkg.NewTypeDefs().NewType(ctx.genName(cls.Name, -1))
+	structType.InitType(pkg, types.NewStruct(
+		[]*types.Var{
+			types.NewVar(0, pkg.Types, "", baseType),
+		},
+		nil,
+	))
+	ctx.structsMap[cls.Name] = structType.Type()
+	ctx.structsList = append(ctx.structsList, cls.Name)
 }
 
 
