@@ -19,7 +19,7 @@ func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol) {
 	}
 	// signature
 	params, variadic := ctx.genParams(pkg, sym.Sig, false, false)
-	name := genName(sym.Name, -1)
+	name := ctx.genName(sym.Name, -1)
 	sig := types.NewSignatureType(nil, nil, nil, params, ctx.ret, variadic) // ret: *py.Object
 	fn := pkg.NewFuncDecl(token.NoPos, name, sig)
 	// doc

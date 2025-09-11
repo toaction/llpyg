@@ -18,12 +18,14 @@ import (
 
 
 type context struct {
-	pkg    *gogen.Package
-	obj    *types.Named
-	objPtr *types.Pointer
-	ret    *types.Tuple
-	py     gogen.PkgRef
-	skips  []symbol
+	pkg    		*gogen.Package
+	obj    		types.Type
+	objPtr 		*types.Pointer
+	ret    		*types.Tuple
+	py     		gogen.PkgRef
+	structsMap 	map[string]types.Type		// TODO: module.class
+	structsList []string		// list of struct name
+	skips  		[]symbol
 }
 
 
@@ -85,10 +87,10 @@ func createGoPackage(mod module) (ctx *context) {
 	defs := pkg.NewConstDefs(pkg.Types.Scope())
 	defs.New(f, 0, 0, nil, "LLGoPackage") // const LLGoPackage = "py.moduleName"
 
-	obj := py.Ref("Object").(*types.TypeName).Type().(*types.Named)
+	obj := py.Ref("Object").(*types.TypeName).Type()
 	objPtr := types.NewPointer(obj)
 	ret := types.NewTuple(pkg.NewParam(0, "", objPtr)) // return *py.Object
-	ctx = &context{pkg, obj, objPtr, ret, py, nil}
+	ctx = &context{pkg, obj, objPtr, ret, py, make(map[string]types.Type), make([]string, 0), nil}
 	return ctx
 }
 
@@ -103,7 +105,9 @@ func (ctx *context) genMod(pkg *gogen.Package, mod *module) {
 		funcMap[sym.Name] = true
 		ctx.genFunc(pkg, sym)
 	}
-	//TDOD: classes, variables
+	// classes
+	ctx.genClasses(pkg, mod.Classes, mod.Name)
+	//TDOD: variables
 }
 
 
@@ -154,13 +158,13 @@ func (ctx *context) genParams(pkg *gogen.Package, sig string, self, cls bool) (*
 			// TODO: support **kwargs
 			return types.NewTuple(list...), false
 		}
-		list = append(list, pkg.NewParam(0, genName(name, 0), ctx.objPtr))
+		list = append(list, pkg.NewParam(0, ctx.genName(name, 0), ctx.objPtr))
 	}
 	return types.NewTuple(list...), false
 }
 
 // python name to go name
-func genName(name string, idxDontTitle int) string {
+func (ctx *context) genName(name string, idxDontTitle int) string {
 	lastIdx := len(name) - 1
 	for lastIdx >= 0 && name[lastIdx] == '_' {
 		lastIdx--
@@ -186,7 +190,7 @@ func genName(name string, idxDontTitle int) string {
 
 // Generate documentation comments from the symbol's doc string
 func (ctx *context) genDoc(doc string) []*ast.Comment {
-	if doc == "" {
+	if doc == "" || doc == "None" {
 		return make([]*ast.Comment, 0, 4)
 	}
 	lines := strings.Split(doc, "\n")
