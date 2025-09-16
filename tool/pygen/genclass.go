@@ -12,15 +12,22 @@ import (
 
 func (ctx *context) genClasses(pkg *gogen.Package, classes []*class, moduleName string) {
 	toHandle := map[string]*class{}
+	skipped := map[string]struct{}{}
 	for _, cls := range classes {
 		if cls.InitMethod == nil {
 			// TODO: support class without __init__
-			ctx.skips = append(ctx.skips, symbol{Name: cls.Name, Type: "class"})
+			ctx.skips = append(ctx.skips, symbol{Name: cls.Name, Type: "class without __init__"})
+			skipped[cls.Name] = struct{}{}
 			continue
 		}
 		if len(cls.Bases) > 1 {
 			// TODO: support multiple inheritance
-			ctx.skips = append(ctx.skips, symbol{Name: cls.Name, Type: "class"})
+			ctx.skips = append(ctx.skips, symbol{Name: cls.Name, Type: "class with multiple inheritance"})
+			skipped[cls.Name] = struct{}{}
+			continue
+		}
+		if len(cls.Bases) == 0 {	// never reached
+			ctx.genStruct(pkg, cls, false)
 			continue
 		}
 		if cls.Bases[0].Name == "object" && cls.Bases[0].Module == "builtins" {
@@ -32,19 +39,36 @@ func (ctx *context) genClasses(pkg *gogen.Package, classes []*class, moduleName 
 			ctx.genStruct(pkg, cls, false)
 			continue
 		}
+		// has one parent in same package and parent is not py.object 
 		toHandle[cls.Name] = cls
 	}
-	// structs embed struct in the same package
+
+	// classes which parents is skipped
+	for name, cls := range toHandle {
+		baseName := cls.Bases[0].Name
+		if _, ok := skipped[baseName]; ok {
+			ctx.genStruct(pkg, cls, false)
+			delete(toHandle, name)
+		}
+	}
+
+	// classes inherit class(not py.object)
 	for len(toHandle) > 0 {
 		for name, cls := range toHandle {
-			baseName := cls.Bases[0].Name
-			if _, ok := ctx.structs[baseName]; ok {
+			parentName := cls.Bases[0].Name
+			_, existsToHandle := toHandle[parentName]
+			_, existsHandled := ctx.structs[parentName]
+			if !existsToHandle && !existsHandled {
+				ctx.skips = append(ctx.skips, symbol{Name: cls.Name, Type: "class with parent not found"})
+				delete(toHandle, name)
+			}
+			if existsHandled {
 				ctx.genStruct(pkg, cls, true)
 				delete(toHandle, name)
 			}
 		}
 	}
-
+	
 	// generate methods for classes
 	classMap := make(map[string]*class)
 	for _, cls := range classes {
@@ -57,7 +81,6 @@ func (ctx *context) genClasses(pkg *gogen.Package, classes []*class, moduleName 
 		ctx.genProperties(pkg, cls, structType)
 	}
 }
-
 
 
 func (ctx *context) genStruct(pkg *gogen.Package, cls *class, hasParent bool) {
@@ -137,6 +160,7 @@ func (ctx *context) genMethod(pkg *gogen.Package, clsName string, methodName str
 		docList = append(docList, emptyCommentLine)
 	}
 	//llgo:link
+	funcName = "(*" + ctx.genName(clsName, -1) + ")." + funcName
 	link := "//llgo:link " + funcName + " py." + clsName + "." + methodName
 	docList = append(docList, &ast.Comment{Text: link})
 	fn.SetComments(pkg, &ast.CommentGroup{List: docList})

@@ -134,7 +134,7 @@ func parseProperty(val *py.Object, name string) *property {
 
 
 // parse class symbol
-func parseClass(clsObj *py.Object, moduleName string) *class {
+func parseClass(clsObj *py.Object, moduleName string, dictFunc *py.Object) *class {
 	cls := &class{}
 	cls.Name = c.GoString(clsObj.GetAttrString(c.Str("__name__")).CStr())
 	clsModule := c.GoString(clsObj.GetAttrString(c.Str("__module__")).CStr())
@@ -155,8 +155,6 @@ func parseClass(clsObj *py.Object, moduleName string) *class {
 	if dictTypeName != "mappingproxy" {
 		return nil
 	}
-	builtins := py.ImportModule(c.AllocaCStr("builtins"))
-	dictFunc := builtins.GetAttrString(c.Str("dict"))
 	realDict := dictFunc.CallOneArg(dict)
 	items := realDict.DictItems()
 	for i, n := 0, items.ListLen(); i < n; i++ {
@@ -209,6 +207,9 @@ func pydump(moduleName string) (*module, error) {
 	modInstance := &module{
 		Name: moduleName,
 	}
+	// builtins.dict, for mappingproxy
+	builtins := py.ImportModule(c.AllocaCStr("builtins"))
+	dictFunc := builtins.GetAttrString(c.Str("dict"))
 	// get symbols
 	for i, n := 0, keys.ListLen(); i < n; i++ {
 		key := keys.ListItem(i)
@@ -232,7 +233,7 @@ func pydump(moduleName string) (*module, error) {
 		}
 		// classes
 		if sym.Type == "type" {
-			cls := parseClass(val, moduleName)
+			cls := parseClass(val, moduleName, dictFunc)
 			if cls != nil {
 				cls.Doc = sym.Doc
 				modInstance.Classes = append(modInstance.Classes, cls)

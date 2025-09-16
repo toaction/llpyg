@@ -23,6 +23,7 @@ type context struct {
 	ret    		*types.Tuple
 	py     		gogen.PkgRef
 	structs 	map[string]types.Type
+	hasParents 	[]*class
 	skips  		[]symbol
 }
 
@@ -88,7 +89,7 @@ func createGoPackage(mod module) (ctx *context) {
 	obj := py.Ref("Object").(*types.TypeName).Type()
 	objPtr := types.NewPointer(obj)
 	ret := types.NewTuple(pkg.NewParam(0, "", objPtr)) // return *py.Object
-	ctx = &context{pkg, obj, objPtr, ret, py, make(map[string]types.Type), nil}
+	ctx = &context{pkg, obj, objPtr, ret, py, make(map[string]types.Type), nil, nil}
 	return ctx
 }
 
