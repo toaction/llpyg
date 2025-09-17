@@ -63,7 +63,7 @@ type Animal struct {
 	py.Object
 }
 
-//llgo:link (*Animal).Speak py.Aniaml.speak
+//llgo:link (*Animal).Speak py.Animal.speak
 func (a *Animal) Speak() *py.Object { return nil }
 ```
 
@@ -90,6 +90,7 @@ llpyg [-o output_dir] [-mod mod_name] llpyg.cfg
 Parameter description:
 - `-o`: Output directory, default value is `./test`
 - `-mod`: Generated Go module name, default value is the Python library name
+- `-d`: Maximum module depth to retrieve for Python libraries, default value is 1
 - `py_lib_name`: Python library name
 - `llpyg.cfg`: Configuration file path
 
@@ -180,10 +181,10 @@ Parameter description:
 Return value:
 ```go
 type library struct {
-	LibName 	  string 		`json:"libName"`
+	LibName 	string 		`json:"libName"`
 	LibVersion  string 		`json:"libVersion"`
-	Depth 		  int  		  `json:"depth"`
-	Modules 	  []string 	`json:"modules"`
+	Depth 		int  		`json:"depth"`
+	Modules 	[]string 	`json:"modules"`
 }
 ```
 
@@ -260,11 +261,7 @@ import (
 
 const LLGoPackage = "py.animals"
 
-type Animal struct {
-	py.Object
-}
-
-//go:linkname NewAnimal py.Animal
-func NewAnimal(name *py.Object) *Animal
+//go:linkname Speak py.speak
+func Speak(msg *py.Object) *py.Object
 ```
 
