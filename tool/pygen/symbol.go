@@ -34,8 +34,8 @@ type class struct {
 
 type module struct {
 	Name  		string    	`json:"name"`
+	Variables 	[]*symbol 	`json:"variables"`
 	Functions 	[]*symbol 	`json:"functions"`
 	Classes 	[]*class 	`json:"classes"`
-	//TODO: global variables
 }
 

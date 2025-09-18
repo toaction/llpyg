@@ -37,7 +37,7 @@ func GenLLGoBindings(moduleName string, outFile io.Writer) {
 	}
 
 	// create go package
-	ctx := createGoPackage(mod)
+	ctx := createGoPackage(mod.Name)
 
 	// generate go code
 	ctx.genMod(ctx.pkg, &mod)
@@ -70,8 +70,8 @@ func pydump(moduleName string) (mod module, err error) {
 	return mod, nil
 }
 
-func createGoPackage(mod module) (ctx *context) {
-	parts := strings.Split(mod.Name, ".")
+func createGoPackage(modName string) (ctx *context) {
+	parts := strings.Split(modName, ".")
 	pkgName := parts[len(parts)-1]
 	if goKeywords[pkgName] {
 		pkgName = pkgName + "_"
@@ -80,7 +80,7 @@ func createGoPackage(mod module) (ctx *context) {
 	pkg.Import("unsafe").MarkForceUsed(pkg)      // import _ "unsafe"
 	py := pkg.Import("github.com/goplus/lib/py") // import "github.com/goplus/lib/py"
 	f := func(cb *gogen.CodeBuilder) int {
-		cb.Val("py." + mod.Name)
+		cb.Val("py." + modName)
 		return 1
 	}
 	defs := pkg.NewConstDefs(pkg.Types.Scope())
@@ -106,7 +106,23 @@ func (ctx *context) genMod(pkg *gogen.Package, mod *module) {
 	}
 	// classes
 	ctx.genClasses(pkg, mod.Classes, mod.Name)
-	// Todo: variable, etc.
+	
+	// variables
+	names := make(map[string]struct{})
+	for _, sym := range mod.Variables {
+		if sym.Name == "" || sym.Name[0] == '_' {
+			continue
+		}
+		name := ctx.genName(sym.Name, -1)
+		_, exist := names[name]
+		// avoid name conflict
+		for exist {
+			name = name + "_"
+			_, exist = names[name]
+		}
+		names[name] = struct{}{}
+		ctx.genVar(pkg, sym, name)
+	}
 }
 
 

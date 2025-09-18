@@ -16,3 +16,8 @@ go.work
 
 # python
 **/__pycache__
+
+# tool test
+tool/**/*.mod
+tool/**/*.sum
+tool/**/*.cfg

@@ -43,9 +43,9 @@ type class struct {
 
 type module struct {
 	Name  		string    	`json:"name"`
+	Variables 	[]*symbol 	`json:"variables"`
 	Functions 	[]*symbol 	`json:"functions"`
 	Classes 	[]*class 	`json:"classes"`
-	//TODO: global variables
 }
 
 
@@ -56,6 +56,19 @@ var pyFuncTypes = map[string]bool{
 	"method-wrapper": true,
 	"builtin_function_or_method": true,
 	"_ArrayFunctionDispatcher": true,
+}
+
+var pyVarTypes = map[string]struct{}{
+	"int": {},
+	"float": {},
+	"complex": {},
+	"bool": {},
+	"str": {},
+	"list": {},
+	"tuple": {},
+	"set": {},
+	"dict": {},
+	"NoneType": {},
 }
 
 func extractSignatureFromDoc(doc, funcName string) string {
@@ -240,7 +253,10 @@ func pydump(moduleName string) (*module, error) {
 			}
 			continue
 		}
-		// TODO: global variables
+		// global variables
+		if _, ok := pyVarTypes[sym.Type]; ok {
+			modInstance.Variables = append(modInstance.Variables, sym)
+		}
 	}
 	return modInstance, nil
 }
