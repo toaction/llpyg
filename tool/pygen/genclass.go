@@ -14,12 +14,6 @@ func (ctx *context) genClasses(pkg *gogen.Package, classes []*class, moduleName 
 	toHandle := map[string]*class{}
 	skipped := map[string]struct{}{}
 	for _, cls := range classes {
-		if cls.InitMethod == nil {
-			// TODO: support class without __init__
-			ctx.skips = append(ctx.skips, symbol{Name: cls.Name, Type: "class without __init__"})
-			skipped[cls.Name] = struct{}{}
-			continue
-		}
 		if len(cls.Bases) > 1 {
 			// TODO: support multiple inheritance
 			ctx.skips = append(ctx.skips, symbol{Name: cls.Name, Type: "class with multiple inheritance"})
@@ -105,13 +99,24 @@ func (ctx *context) genStruct(pkg *gogen.Package, cls *class, hasParent bool) {
 func (ctx *context) genConstructor(pkg *gogen.Package, cls *class, structType types.Type) {
 	funcName := "New" + ctx.genName(cls.Name, -1)
 	sym := cls.InitMethod
+	if sym == nil {
+		return
+	}
 	// signature
-	params, variadic := ctx.genParams(pkg, sym.Sig, true, false)
+	hasInit := false
+	if sym.Name == "__init__" {
+		hasInit = true
+	}
+	params, variadic := ctx.genParams(pkg, sym.Sig, hasInit, false)
 	ret := types.NewTuple(pkg.NewParam(0, "", types.NewPointer(structType)))
 	sig := types.NewSignatureType(nil, nil, nil, params, ret, variadic)
 	fn := pkg.NewFuncDecl(token.NoPos, funcName, sig)
+	// doc
+	docList := ctx.genDoc(cls.Doc)
+	if len(docList) > 0 {
+		docList = append(docList, emptyCommentLine)
+	}
 	// linkname
-	docList := make([]*ast.Comment, 0, 2)
 	goLinkname := "//go:linkname " + funcName + " py." + cls.Name
 	docList = append(docList, &ast.Comment{Text: goLinkname})
 	fn.SetComments(pkg, &ast.CommentGroup{List: docList})

@@ -113,6 +113,20 @@ func parseMethod(val *py.Object, name string, typeName string) *symbol {
 }
 
 
+func parseNewMethod(clsName string, cls *py.Object, val *py.Object) *symbol {
+	sym := &symbol{Name: clsName, Type: "newMethod"}
+	doc := cls.GetAttrString(c.Str("__doc__"))
+	if doc != nil {
+		sym.Doc = c.GoString(doc.Str().CStr())
+	}
+	sym.Sig = extractSignatureFromDoc(sym.Doc, sym.Name)
+	if sym.Sig == "" {
+		sym.Sig = "(*args, **kwargs)"
+	}
+	return sym
+}
+
+
 func parseProperty(val *py.Object, name string) *property {
 	property := &property{Name: name}
 	fget := val.GetAttrString(c.Str("fget"))
@@ -157,6 +171,7 @@ func parseClass(clsObj *py.Object, moduleName string, dictFunc *py.Object) *clas
 	}
 	realDict := dictFunc.CallOneArg(dict)
 	items := realDict.DictItems()
+	hasNew := false
 	for i, n := 0, items.ListLen(); i < n; i++ {
 		item := items.ListItem(i)
 		name := c.GoString(item.TupleItem(0).CStr())
@@ -166,6 +181,10 @@ func parseClass(clsObj *py.Object, moduleName string, dictFunc *py.Object) *clas
 		if name == "__init__" {
 			sym := parseMethod(val, name, typeName)
 			cls.InitMethod = sym
+			continue
+		}
+		if name == "__new__" {
+			hasNew = true
 			continue
 		}
 		switch typeName {
@@ -186,6 +205,14 @@ func parseClass(clsObj *py.Object, moduleName string, dictFunc *py.Object) *clas
 		default:
 			// TODO: attributes
 		}
+	}
+	if hasNew {
+		val := clsObj.GetAttrString(c.Str("__new__"))
+		if val == nil {
+			return cls
+		}
+		sym := parseNewMethod(cls.Name, clsObj, val)
+		cls.InitMethod = sym
 	}
 	return cls
 }
