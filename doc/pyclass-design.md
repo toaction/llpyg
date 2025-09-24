@@ -66,12 +66,39 @@ print(dog)
 
 ## LLGo Bindings 设计
 
-### 类和实例
-将 Python 类转换为 Go 结构体，通过嵌入实现类似继承的功能。对于类实例，通过声明的 `New[ClassName]` 构造函数进行创建。对应的构造函数通过 `go:linkname` 链接到符号 `py.[ClassName]`。
+### 类
+将 Python 类转换为 Go 结构体，通过嵌入结构体实现类似继承的功能。
+> 目前结构体嵌入的方法仅支持单继承
 
-> New[ClassName] 函数的参数从类的 `__init__` 或 `__new__` 方法获得。
+例如 `Dog` 类继承自 `Animal` 类：
+```Python
+class Animal:
+    pass
 
-Python 类：
+class Dog(Animal):
+    pass
+```
+对应的 Go 结构体：
+```Go
+type Animal struct {
+	py.Object
+}
+
+type Dog struct {
+	Animal
+}
+```
+
+
+### 实例
+
+对于类实例，通过声明构造函数 `New[ClassName]` 进行创建。构造函数通过 `go:linkname` 链接到符号 `py.[ClassName]`。
+
+> 根据 LLGo 的实现逻辑，New[ClassName] 函数的参数应从类的 `__init__` 方法获得。
+> 一些类可能没有 `__init__` 方法，但声明有 `__new__` 方法，则从 `__new__` 方法获得用于创建实例的函数参数。
+> 若两个方法都不存在，则不声明该类的构造函数。
+
+Python 代码实例：
 ```Python
 class Dog(Animal):
     def __init__(self, name, age):
@@ -81,7 +108,7 @@ class Dog(Animal):
 dog = Dog("Buddy", 3)
 ```
 
-Go 结构体：
+LLGo Bindings：
 
 ```Go
 type Dog struct {
