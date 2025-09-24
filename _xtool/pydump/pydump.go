@@ -1,15 +1,14 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"encoding/json"
-	"strings"
+	"fmt"
 	"github.com/goplus/lib/c"
 	"github.com/goplus/lib/py"
 	"github.com/goplus/lib/py/inspect"
+	"os"
+	"strings"
 )
-
 
 type symbol struct {
 	Name string `json:"name"`
@@ -19,39 +18,37 @@ type symbol struct {
 }
 
 type module struct {
-	Name  		string    `json:"name"`		// python module name
-	Functions 	[]*symbol `json:"functions"`    // package functions
+	Name      string    `json:"name"`      // python module name
+	Functions []*symbol `json:"functions"` // package functions
 	// TODO: variables, classes, etc.
 }
 
-
 var pyFuncTypes = map[string]bool{
-	"ufunc": true,
-	"method": true,
-	"function": true,
-	"method-wrapper": true,
+	"ufunc":                      true,
+	"method":                     true,
+	"function":                   true,
+	"method-wrapper":             true,
 	"builtin_function_or_method": true,
-	"_ArrayFunctionDispatcher": true,
+	"_ArrayFunctionDispatcher":   true,
 }
 
 func extractSignatureFromDoc(doc, funcName string) string {
-    lines := strings.SplitN(doc, "\n\n", 2)
-    if len(lines) == 0 {
-        return ""
-    }
-    firstLine := strings.TrimSpace(lines[0])
-    if !strings.HasPrefix(firstLine, funcName+"(") {
-        return ""
-    }
+	lines := strings.SplitN(doc, "\n\n", 2)
+	if len(lines) == 0 {
+		return ""
+	}
+	firstLine := strings.TrimSpace(lines[0])
+	if !strings.HasPrefix(firstLine, funcName+"(") {
+		return ""
+	}
 	idx := strings.Index(firstLine, "(")
-    if idx == -1 {
-        return ""
-    }
-    params := firstLine[idx:]
-    fields := strings.Fields(params)
-    return strings.Join(fields, " ")
+	if idx == -1 {
+		return ""
+	}
+	params := firstLine[idx:]
+	fields := strings.Fields(params)
+	return strings.Join(fields, " ")
 }
-
 
 func getSignature(val *py.Object, sym *symbol) string {
 	// function, method, class, or implement __call__
@@ -77,7 +74,6 @@ func getSignature(val *py.Object, sym *symbol) string {
 	}
 	return ""
 }
-
 
 // moduleName: Python module name
 func pydump(moduleName string) (*module, error) {
@@ -120,7 +116,6 @@ func pydump(moduleName string) (*module, error) {
 	return modInstance, nil
 }
 
-
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: pydump <py_module_name>")
@@ -129,7 +124,7 @@ func main() {
 	moduleName := os.Args[1]
 	mod, err := pydump(moduleName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)		
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 	// print module information
@@ -140,4 +135,3 @@ func main() {
 	}
 	fmt.Println(string(data))
 }
-
