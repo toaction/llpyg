@@ -19,8 +19,9 @@ type symbol struct {
 }
 
 type module struct {
-	Name  string    `json:"name"`		// python module name
-	Items []*symbol `json:"items"`
+	Name  		string    `json:"name"`		// python module name
+	Functions 	[]*symbol `json:"functions"`    // package functions
+	// TODO: variables, classes, etc.
 }
 
 
@@ -101,18 +102,20 @@ func pydump(moduleName string) (*module, error) {
 		if val == nil {
 			continue
 		}
-		// name, type, doc, signature
+		// define symbol
 		sym := &symbol{}
 		sym.Name = c.GoString(key.CStr())
 		sym.Type = c.GoString(val.Type().TypeName().CStr())
-		// doc
 		doc := val.GetAttrString(c.Str("__doc__"))
 		if doc != nil && doc.IsTrue() == 1 {
 			sym.Doc = c.GoString(doc.Str().CStr())
 		}
-		// signature
-		sym.Sig = getSignature(val, sym)
-		modInstance.Items = append(modInstance.Items, sym)
+		// functions
+		if pyFuncTypes[sym.Type] {
+			sym.Sig = getSignature(val, sym)
+			modInstance.Functions = append(modInstance.Functions, sym)
+		}
+		// TODO: variables, classes, etc.
 	}
 	return modInstance, nil
 }
