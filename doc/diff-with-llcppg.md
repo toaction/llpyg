@@ -26,7 +26,7 @@ func (recv_ *BZFILE) Read(buf c.Pointer, len c.Int) c.Int {
 }
 ```
 
-llpyg 类型处理：主要使用 `*py.Object` 作为通用类型，包括传入参数与返回值类型。
+llpyg 类型处理：主要使用 `py.Object` 作为通用参数类型，返回类型为 `*py.Object`。
 > 完善对类的支持后将会增加返回类型转换的功能。
 
 ```go
@@ -62,8 +62,8 @@ llpyg 配置文件 (llpyg.cfg)：
   "modules": ["numpy", "numpy.random"]
 }
 ```
-- `llcppg.cfg` 中的 `cflags` 和 `libs` 字段的作用与 `llpyg.cfg` 中的 `libName` 字段作用等同，都是为了找到要处理的库的位置。
-- `include` 字段和 `modules` 字段作用等同，指出要处理的文件/模块有哪些
+- `llcppg.cfg` 中的 `cflags` 和 `libs` 字段用于提供编译和链接 C/C++ 库所需的信息，而 `llpyg.cfg` 中的 `libName` 字段则指定了要处理的 Python 库名。两者都用于定位目标库。
+- `include` 字段和 `modules` 字段作用等同，指出要处理的文件/模块有哪些。
 - `deps` 字段用于声明库的依赖，在类型处理时需要用到。Python 也有类似的需求，但目前类型统一为了 `py.Object`，后续会添加依赖声明相关功能。
 
 
