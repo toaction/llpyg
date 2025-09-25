@@ -6,16 +6,16 @@
 **/.vscode/
 **/.idea/
 
-# self
-.gitignore
-
 # test
 **/test
 test*
-!tool/**/test
+!tool/**/testdata
 
 # cfg
 **/*.cfg
 
 # go.work
 go.work
+
+# Python
+**/__pycache__
