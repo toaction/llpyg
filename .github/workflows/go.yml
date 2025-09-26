@@ -17,6 +17,7 @@ jobs:
           - macos-latest
         llgo: [e4218f90d7926d31c1ffae3965a4e36228d38fd2]
         go: [1.24]
+        python: [3.12]
       fail-fast: false
     runs-on: ${{matrix.os}}
     steps:
@@ -26,7 +27,7 @@ jobs:
         with:
           go: ${{ matrix.go }}
           llgo: ${{ matrix.llgo }}
-
+          python: ${{ matrix.python }}
       - name: Test
         if: ${{!startsWith(matrix.os, 'macos')}}
         run: go test -v ./...
