@@ -6,10 +6,8 @@
 **/.vscode/
 **/.idea/
 
-# test
-**/test
-test*
-!tool/**/testdata
+# out
+**/out
 
 # cfg
 **/*.cfg
