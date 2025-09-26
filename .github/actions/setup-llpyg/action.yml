@@ -34,8 +34,7 @@ runs:
     - name: Set up Python environment
       shell: bash
       run: |
-        export PYTHONHOME=$(python -c "import sys; print(sys.prefix)")
-        echo "PYTHONHOME=$PYTHONHOME" >> $GITHUB_ENV
+        echo "PYTHONHOME=$pythonLocation" >> $GITHUB_ENV
     - name: Install dependencies
       if: runner.os == 'macOS'
       shell: bash
