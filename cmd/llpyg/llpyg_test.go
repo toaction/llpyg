@@ -62,7 +62,11 @@ func TestParseArgs(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+			originalFlagSet := flag.CommandLine
+			flag.CommandLine = flag.NewFlagSet("test", flag.ContinueOnError)
+			defer func() {
+				flag.CommandLine = originalFlagSet
+			}()
 			originalArgs := os.Args
 			defer func() {
 				os.Args = originalArgs
@@ -72,34 +76,33 @@ func TestParseArgs(t *testing.T) {
 			if runMode != c.runMode {
 				t.Errorf("runMode = %v, want %v", runMode, c.runMode)
 			}
-			if !equalArgsWithPath(args, c.wantArgs) {
-				t.Errorf("args = %v, want %v", args, c.wantArgs)
-			}
+			assertArgsEqual(t, args, c.wantArgs)
 		})
 	}
 }
 
-func equalArgsWithPath(a, b Args) bool {
-	aAbs, err := filepath.Abs(a.OutputDir)
+func assertArgsEqual(t *testing.T, got, want Args) {
+	t.Helper()
+
+	gotAbs, err := filepath.Abs(got.OutputDir)
 	if err != nil {
-		return false
+		t.Fatalf("failed to get absolute path for got.OutputDir %q: %v", got.OutputDir, err)
 	}
-	bAbs, err := filepath.Abs(b.OutputDir)
+	wantAbs, err := filepath.Abs(want.OutputDir)
 	if err != nil {
-		return false
+		t.Fatalf("failed to get absolute path for want.OutputDir %q: %v", want.OutputDir, err)
 	}
 
-	if aAbs != bAbs {
-		return false
+	if gotAbs != wantAbs {
+		t.Errorf("unexpected OutputDir: got %q, want %q", gotAbs, wantAbs)
 	}
-	if a.ModName != b.ModName {
-		return false
+	if got.ModName != want.ModName {
+		t.Errorf("unexpected ModName: got %q, want %q", got.ModName, want.ModName)
 	}
-	if a.ModDepth != b.ModDepth {
-		return false
+	if got.ModDepth != want.ModDepth {
+		t.Errorf("unexpected ModDepth: got %d, want %d", got.ModDepth, want.ModDepth)
 	}
-	if a.Kwarg != b.Kwarg {
-		return false
+	if got.Kwarg != want.Kwarg {
+		t.Errorf("unexpected Kwarg: got %q, want %q", got.Kwarg, want.Kwarg)
 	}
-	return true
 }
