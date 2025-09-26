@@ -68,7 +68,7 @@ func main() {
 
 // parse args from command line
 func parseArgs() (runMode string, args Args) {
-	output := flag.String("o", "./test", "Output dir")
+	output := flag.String("o", "./out", "Output dir")
 	modName := flag.String("mod", "", "Generate Go Bindings module name")
 	modDepth := flag.Int("d", 1, "Extract module depth")
 	flag.Parse()
