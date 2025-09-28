@@ -1,34 +1,40 @@
 package pygen
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"testing"
 	"path/filepath"
+	"runtime"
 )
 
-func readJsonData(t *testing.T, path string) module {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
+func prepareEnv(dir string) {
+	os.Setenv("PYTHONPATH", dir)
+	pyHome := os.Getenv("PYTHONHOME")
+	if pyHome == "" {
+		return
 	}
-	var mod module
-	err = json.Unmarshal(data, &mod)
-	if err != nil {
-		t.Fatal(err)
+	// lib
+	switch runtime.GOOS {
+	case "darwin":
+		os.Setenv("DYLD_LIBRARY_PATH", pyHome+"/lib")
+	case "linux":
+		os.Setenv("LD_LIBRARY_PATH", pyHome+"/lib")
 	}
-	return mod
 }
 
 func TestGenFunc(t *testing.T) {
-	mod := readJsonData(t, "testdata/func/demo.json")
+	prepareEnv("./testdata/func")
+	mod, err := pydump("demo")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := createGoPackage(mod)
 	for _, sym := range mod.Functions {
 		ctx.genFunc(ctx.pkg, sym)
 	}
-	err := compareWithExpected(t, ctx, "testdata/func/expect.go")
+	err = compareWithExpected(t, ctx, "testdata/func/expect.go")
 	if err != nil {
 		t.Fatalf("test gen func failed: %v", err)
 	}
