@@ -65,3 +65,15 @@ func goModTidy(outDir string) error {
 	return nil
 }
 
+func codeFormat(outDir string) error {
+	if err := os.Chdir(outDir); err != nil {
+		return fmt.Errorf("error: failed to change directory: %w", err)
+	}
+	cmd := exec.Command("go", "fmt", "./...")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("error: failed to format Go code: %w", err)
+	}
+	return nil
+}
