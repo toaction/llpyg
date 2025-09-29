@@ -14,6 +14,7 @@ import (
 	"go/types"
 	"github.com/goplus/gogen"
 	"github.com/goplus/llpyg/tool/pysig"
+	"github.com/goplus/llpyg/symbol"
 )
 
 
@@ -23,7 +24,7 @@ type context struct {
 	objPtr *types.Pointer
 	ret    *types.Tuple
 	py     gogen.PkgRef
-	skips  []symbol
+	skips  []symbol.Symbol
 }
 
 
@@ -50,7 +51,7 @@ func GenLLGoBindings(moduleName string, outFile io.Writer) {
 	ctx.pkg.WriteTo(outFile)
 }
 
-func pydump(moduleName string) (mod module, err error) {
+func pydump(moduleName string) (mod symbol.Module, err error) {
 	var out bytes.Buffer
 	cmd := exec.Command("pydump", moduleName)
 	cmd.Stdout = &out
@@ -69,7 +70,7 @@ func pydump(moduleName string) (mod module, err error) {
 	return mod, nil
 }
 
-func createGoPackage(mod module) (ctx *context) {
+func createGoPackage(mod symbol.Module) (ctx *context) {
 	parts := strings.Split(mod.Name, ".")
 	pkgName := parts[len(parts)-1]
 	if goKeywords[pkgName] {
@@ -92,7 +93,7 @@ func createGoPackage(mod module) (ctx *context) {
 	return ctx
 }
 
-func (ctx *context) genMod(pkg *gogen.Package, mod *module) {
+func (ctx *context) genMod(pkg *gogen.Package, mod *symbol.Module) {
 	// global functions
 	funcMap := make(map[string]bool)
 	for _, sym := range mod.Functions {

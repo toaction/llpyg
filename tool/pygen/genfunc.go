@@ -1,13 +1,14 @@
 package pygen
 
 import (
-	"github.com/goplus/gogen"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"github.com/goplus/gogen"
+	"github.com/goplus/llpyg/symbol"
 )
 
-func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol) {
+func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol.Symbol) {
 	name, symSig := sym.Name, sym.Sig
 	if len(name) == 0 || name[0] == '_' {
 		return
@@ -30,6 +31,6 @@ func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol) {
 	fn.SetComments(pkg, &ast.CommentGroup{List: docList})
 }
 
-func (ctx *context) genLinkname(name string, sym *symbol) *ast.Comment {
+func (ctx *context) genLinkname(name string, sym *symbol.Symbol) *ast.Comment {
 	return &ast.Comment{Text: "//go:linkname " + name + " py." + sym.Name}
 }

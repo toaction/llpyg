@@ -1,14 +1,14 @@
-package pygen
+package symbol
 
-type symbol struct {
+type Symbol struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 	Doc  string `json:"doc"`
 	Sig  string `json:"sig"`
 }
 
-type module struct {
+type Module struct {
 	Name      string    `json:"name"`      // python module name
-	Functions []*symbol `json:"functions"` // package functions
+	Functions []*Symbol `json:"functions"` // package functions
 	// TODO: variables, classes, etc.
 }

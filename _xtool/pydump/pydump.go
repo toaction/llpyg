@@ -1,27 +1,15 @@
 package main
 
 import (
-	"encoding/json"
+	"os"
 	"fmt"
+	"strings"
+	"encoding/json"
 	"github.com/goplus/lib/c"
 	"github.com/goplus/lib/py"
 	"github.com/goplus/lib/py/inspect"
-	"os"
-	"strings"
+	"github.com/goplus/llpyg/symbol"
 )
-
-type symbol struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Doc  string `json:"doc"`
-	Sig  string `json:"sig"`
-}
-
-type module struct {
-	Name      string    `json:"name"`      // python module name
-	Functions []*symbol `json:"functions"` // package functions
-	// TODO: variables, classes, etc.
-}
 
 var pyFuncTypes = map[string]bool{
 	"ufunc":                      true,
@@ -50,7 +38,7 @@ func extractSignatureFromDoc(doc, funcName string) string {
 	return strings.Join(fields, " ")
 }
 
-func getSignature(val *py.Object, sym *symbol) string {
+func getSignature(val *py.Object, sym *symbol.Symbol) string {
 	// function, method, class, or implement __call__
 	if val.Callable() == 0 {
 		return ""
@@ -76,7 +64,7 @@ func getSignature(val *py.Object, sym *symbol) string {
 }
 
 // moduleName: Python module name
-func pydump(moduleName string) (*module, error) {
+func pydump(moduleName string) (*symbol.Module, error) {
 	// import module
 	mod := py.ImportModule(c.AllocaCStr(moduleName))
 	if mod == nil {
@@ -88,7 +76,7 @@ func pydump(moduleName string) (*module, error) {
 		return nil, fmt.Errorf("failed to get dict keys of %s", moduleName)
 	}
 	// create module instance
-	modInstance := &module{
+	modInstance := &symbol.Module{
 		Name: moduleName,
 	}
 	// get symbols
@@ -99,7 +87,7 @@ func pydump(moduleName string) (*module, error) {
 			continue
 		}
 		// define symbol
-		sym := &symbol{}
+		sym := &symbol.Symbol{}
 		sym.Name = c.GoString(key.CStr())
 		sym.Type = c.GoString(val.Type().TypeName().CStr())
 		doc := val.GetAttrString(c.Str("__doc__"))
