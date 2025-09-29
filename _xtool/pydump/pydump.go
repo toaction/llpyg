@@ -8,7 +8,7 @@ import (
 	"github.com/goplus/lib/c"
 	"github.com/goplus/lib/py"
 	"github.com/goplus/lib/py/inspect"
-	"github.com/goplus/llpyg/ast"
+	"github.com/goplus/llpyg/symbol"
 )
 
 var pyFuncTypes = map[string]bool{
@@ -38,7 +38,7 @@ func extractSignatureFromDoc(doc, funcName string) string {
 	return strings.Join(fields, " ")
 }
 
-func getSignature(val *py.Object, sym *ast.Symbol) string {
+func getSignature(val *py.Object, sym *symbol.Symbol) string {
 	// function, method, class, or implement __call__
 	if val.Callable() == 0 {
 		return ""
@@ -64,7 +64,7 @@ func getSignature(val *py.Object, sym *ast.Symbol) string {
 }
 
 // moduleName: Python module name
-func pydump(moduleName string) (*ast.Module, error) {
+func pydump(moduleName string) (*symbol.Module, error) {
 	// import module
 	mod := py.ImportModule(c.AllocaCStr(moduleName))
 	if mod == nil {
@@ -76,7 +76,7 @@ func pydump(moduleName string) (*ast.Module, error) {
 		return nil, fmt.Errorf("failed to get dict keys of %s", moduleName)
 	}
 	// create module instance
-	modInstance := &ast.Module{
+	modInstance := &symbol.Module{
 		Name: moduleName,
 	}
 	// get symbols
@@ -87,7 +87,7 @@ func pydump(moduleName string) (*ast.Module, error) {
 			continue
 		}
 		// define symbol
-		sym := &ast.Symbol{}
+		sym := &symbol.Symbol{}
 		sym.Name = c.GoString(key.CStr())
 		sym.Type = c.GoString(val.Type().TypeName().CStr())
 		doc := val.GetAttrString(c.Str("__doc__"))

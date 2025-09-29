@@ -5,10 +5,10 @@ import (
 	"go/token"
 	"go/types"
 	"github.com/goplus/gogen"
-	pyast "github.com/goplus/llpyg/ast"
+	"github.com/goplus/llpyg/symbol"
 )
 
-func (ctx *context) genFunc(pkg *gogen.Package, sym *pyast.Symbol) {
+func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol.Symbol) {
 	name, symSig := sym.Name, sym.Sig
 	if len(name) == 0 || name[0] == '_' {
 		return
@@ -31,6 +31,6 @@ func (ctx *context) genFunc(pkg *gogen.Package, sym *pyast.Symbol) {
 	fn.SetComments(pkg, &ast.CommentGroup{List: docList})
 }
 
-func (ctx *context) genLinkname(name string, sym *pyast.Symbol) *ast.Comment {
+func (ctx *context) genLinkname(name string, sym *symbol.Symbol) *ast.Comment {
 	return &ast.Comment{Text: "//go:linkname " + name + " py." + sym.Name}
 }
