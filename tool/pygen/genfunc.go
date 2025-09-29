@@ -1,10 +1,10 @@
 package pygen
 
 import (
-	"github.com/goplus/gogen"
 	"go/ast"
 	"go/token"
 	"go/types"
+	"github.com/goplus/gogen"
 	pyast "github.com/goplus/llpyg/ast"
 )
 

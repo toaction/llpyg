@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
+	"os"
 	"fmt"
+	"strings"
+	"encoding/json"
 	"github.com/goplus/lib/c"
 	"github.com/goplus/lib/py"
 	"github.com/goplus/lib/py/inspect"
-	"os"
-	"strings"
 	"github.com/goplus/llpyg/ast"
 )
 
