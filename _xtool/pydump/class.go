@@ -127,7 +127,10 @@ func parseProperty(val *py.Object, name string) *symbol.Property {
 	}
 	getter := val.GetAttrString(c.Str("fget"))
 	if getter != nil && getter.IsTrue() == 1 {
-		property.Getter = symbol.Signature{}
+		property.Getter = symbol.Signature{
+			Source: symbol.SigSourceInspect,
+			Str:    "(self)",
+		}
 	}
 	setter := val.GetAttrString(c.Str("fset"))
 	if setter != nil && setter.IsTrue() == 1 {
