@@ -84,6 +84,10 @@ func pydump(moduleName string) (*symbol.Module, error) {
 	modInstance := &symbol.Module{
 		Name: moduleName,
 	}
+	dictFunc, err := getBuiltinDict()
+	if err != nil {
+		return nil, err
+	}
 	for i, n := 0, keys.ListLen(); i < n; i++ {
 		key := keys.ListItem(i)
 		val := mod.GetAttr(key)
@@ -106,7 +110,14 @@ func pydump(moduleName string) (*symbol.Module, error) {
 			sym.Sig = *sig
 			modInstance.Functions = append(modInstance.Functions, sym)
 		}
-		// TODO: variables, classes, etc.
+		// classes
+		if inspect.Isclass(val).IsTrue() == 1 {
+			cls, err := parseClass(val, sym, moduleName, dictFunc)
+			if err != nil {
+				return nil, err
+			}
+			modInstance.Classes = append(modInstance.Classes, cls)
+		}
 	}
 	return modInstance, nil
 }

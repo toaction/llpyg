@@ -28,5 +28,31 @@ type Symbol struct {
 type Module struct {
 	Name      string    `json:"name"`      // python module name
 	Functions []*Symbol `json:"functions"` // package functions
-	// TODO: variables, classes, etc.
+	Classes   []*Class  `json:"classes"`
+}
+
+// base class
+type Base struct {
+	Name   string `json:"name"`
+	Module string `json:"module"`
+}
+
+// @property
+type Property struct {
+	Name   string    `json:"name"`
+	Getter Signature `json:"getter"`
+	Setter Signature `json:"setter"`
+}
+
+// Python class
+type Class struct {
+	Name            string      `json:"name"`
+	Doc             string      `json:"doc"`
+	Bases           []*Base     `json:"base"`
+	InitMethod      *Symbol     `json:"initMethod"`
+	InstanceMethods []*Symbol   `json:"instanceMethods"` // include override special methods
+	ClassMethods    []*Symbol   `json:"classMethods"`
+	StaticMethods   []*Symbol   `json:"staticMethods"`
+	Properties      []*Property `json:"properties"`
+	// TODO: attributes
 }
