@@ -164,10 +164,7 @@ func initWorkDir(args *Args, cfg Config) error {
 	if args.ModName == "" {
 		args.ModName = cfg.Name
 	}
-	if err := initGoModule(args.ModName, args.OutputDir); err != nil {
-		return err
-	}
-	return nil
+	return initGoModule(args.ModName, args.OutputDir)
 }
 
 func generateFromConfig(cfg Config, outDir string) {

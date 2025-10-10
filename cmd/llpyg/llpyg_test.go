@@ -110,7 +110,21 @@ func assertArgsEqual(t *testing.T, got, want Args) {
 
 func TestGoModuleUtils(t *testing.T) {
 	tempDir := t.TempDir()
-	goFile := filepath.Join(tempDir, "test.go")
+	args := Args{
+		OutputDir: tempDir,
+		ModName:   "test",
+		ModDepth:  1,
+		Kwarg:     "test",
+	}
+	cfg := Config{
+		Name:    "test",
+		LibName: "test",
+		Modules: []string{"test"},
+	}
+	if err := initWorkDir(&args, cfg); err != nil {
+		t.Fatal(err)
+	}
+	goFile := filepath.Join(args.OutputDir, "test.go")
 	goContent := `package main
 
 	import (
@@ -127,15 +141,11 @@ func TestGoModuleUtils(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create test Go file: %v", err)
 	}
-	err = initGoModule("test", tempDir)
+	err = goModTidy(args.OutputDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = goModTidy(tempDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = codeFormat(tempDir)
+	err = codeFormat(args.OutputDir)
 	if err != nil {
 		t.Fatal(err)
 	}
