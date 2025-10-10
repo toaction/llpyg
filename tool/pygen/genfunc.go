@@ -13,10 +13,6 @@ func (ctx *context) genFunc(pkg *gogen.Package, sym *symbol.Symbol) {
 	if len(name) == 0 || name[0] == '_' {
 		return
 	}
-	if symSig.Str == "" { // no signature
-		ctx.skips = append(ctx.skips, *sym)
-		return
-	}
 	// signature
 	params, variadic := ctx.genParams(pkg, symSig.Str)
 	goName := ctx.genName(name, -1)
