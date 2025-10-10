@@ -20,17 +20,22 @@ var pyFuncTypes = map[string]bool{
 	"_ArrayFunctionDispatcher":   true,
 }
 
-var pyDataTypes = map[string]struct{}{
-	"int":      {},
-	"float":    {},
-	"complex":  {},
-	"bool":     {},
-	"str":      {},
-	"list":     {},
-	"tuple":    {},
-	"set":      {},
-	"dict":     {},
-	"NoneType": {},
+var pyBasicDataTypes = map[string]struct{}{
+	"int":        {},
+	"float":      {},
+	"complex":    {},
+	"bool":       {},
+	"str":        {},
+	"list":       {},
+	"tuple":      {},
+	"range":      {},
+	"set":        {},
+	"frozenset":  {},
+	"dict":       {},
+	"bytes":      {},
+	"bytearray":  {},
+	"memoryview": {},
+	"NoneType":   {},
 }
 
 func extractSignatureFromDoc(doc, funcName string) string {
@@ -114,7 +119,7 @@ func pydump(moduleName string) (*symbol.Module, error) {
 			continue
 		}
 		// variables
-		if _, ok := pyDataTypes[sym.Type]; ok {
+		if _, ok := pyBasicDataTypes[sym.Type]; ok {
 			modInstance.Variables = append(modInstance.Variables, sym)
 			continue
 		}

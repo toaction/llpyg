@@ -31,11 +31,26 @@ var ListVar *py.Object
 //go:linkname TupleVar py.tuple_var
 var TupleVar *py.Object
 
-//go:linkname SetVar py.set_var
-var SetVar *py.Object
+//go:linkname RangeVar py.range_var
+var RangeVar *py.Object
 
 //go:linkname DictVar py.dict_var
 var DictVar *py.Object
+
+//go:linkname SetVar py.set_var
+var SetVar *py.Object
+
+//go:linkname FrozensetVar py.frozenset_var
+var FrozensetVar *py.Object
+
+//go:linkname BytesVar py.bytes_var
+var BytesVar *py.Object
+
+//go:linkname BytearrayVar py.bytearray_var
+var BytearrayVar *py.Object
+
+//go:linkname MvVar py.mv_var
+var MvVar *py.Object
 
 //go:linkname NoneVar py.none_var
 var NoneVar *py.Object
