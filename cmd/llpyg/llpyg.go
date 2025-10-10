@@ -55,13 +55,22 @@ func main() {
 	}
 
 	// init work dir
-	initWorkDir(&args, cfg)
+	if err := initWorkDir(&args, cfg); err != nil {
+		log.Fatal(err)
+	}
 
 	// LLGo Bindings generation
 	generateFromConfig(cfg, args.OutputDir)
 
 	// tidy go module
-	goModTidy(args.OutputDir)
+	if err := goModTidy(args.OutputDir); err != nil {
+		log.Fatal(err)
+	}
+
+	// format go code
+	if err := codeFormat(args.OutputDir); err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Printf("LLGo bindings generated successfully in %s\n", args.OutputDir)
 }
@@ -141,23 +150,21 @@ func readConfig(cfgPath string) (cfg Config) {
 }
 
 // init work dir, include go module, llpyg.cfg
-func initWorkDir(args *Args, cfg Config) {
+func initWorkDir(args *Args, cfg Config) error {
 	args.OutputDir = filepath.Join(args.OutputDir, cfg.Name)
 	// remove origin output dir
 	if err := os.RemoveAll(args.OutputDir); err != nil {
-		log.Fatalf("error: failed to remove output directory %s: %v\n", args.OutputDir, err)
+		return fmt.Errorf("failed to remove output directory %s: %v", args.OutputDir, err)
 	}
 	// write config file
 	if err := writeConfig(cfg, args.OutputDir); err != nil {
-		log.Fatalf("error: failed to write config file %s: %v\n", args.OutputDir, err)
+		return fmt.Errorf("failed to write config file %s: %v", args.OutputDir, err)
 	}
 	// init go module
 	if args.ModName == "" {
 		args.ModName = cfg.Name
 	}
-	if err := initGoModule(args.ModName, args.OutputDir); err != nil {
-		log.Fatal(err)
-	}
+	return initGoModule(args.ModName, args.OutputDir)
 }
 
 func generateFromConfig(cfg Config, outDir string) {
