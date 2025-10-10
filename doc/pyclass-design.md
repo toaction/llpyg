@@ -83,8 +83,7 @@ LLGo 通过不断调用 `PyObject_GetAttrString` 来获取 Python 对象。基�
 
 
 ### 类
-将 Python 类转换为 Go 结构体，通过嵌入结构体实现类似继承的功能。
-> 由于内存布局的问题，目前结构体嵌入的方法仅支持单继承
+将 Python 类转换为 Go 结构体，通过嵌入结构体实现类似继承的功能（包括多继承）。
 
 例如 `Dog` 类继承自 `Animal` 类：
 ```Python
@@ -296,54 +295,3 @@ DOGNAME = mod.Dog.DOG_NAME
     dogClass.setAttribute(py.Str("DOG_NAME"), py.Str("Buddy"))
     ```
     缺点：用户无法直接查看类中存在哪些属性。
-
-
-
-### 多重继承
-Python 示例：
-```Python
-class Parent1:
-    def Method1(self):
-        print(f"Parent1 Method1")
-
-class Parent2:
-    def Method2(self):
-        print(f"Parent2 Method2")
-
-class Child(Parent1, Parent2):
-    def __init__(self, name):
-        self._name = name
-```
-由于内存布局的问题，多重继承的效果并不能通过嵌入多个结构体来实现：
-
-```go
-type Child struct {
-	Parent1
-	Parent2
-}
-```
-但在 Python 中，仍可以通过子类或对应父类的符号链接到指定的方法，通过传入实例对象进行方法调用：
-```Python
-# call method1
-mod.Child.Method1(child)
-mod.Parent1.Method1(child)
-# call method2
-mod.Child.Method2(child)
-mod.Parent2.Method2(child)
-```
-因此，对于**多继承**的支持，一种可行的设计方案是将子类声明为结构体，将继承到的所有父类方法都转为结构体方法，方法链接符号中类名既可以是子类也可以是对应的父类。
-
-```go
-type Child struct {
-	py.Object
-}
-
-//llgo:link (*Child).Method1 py.Child.Method1
-func (c *Child) Method1() *py.Object
-//llgo:link (*Child).Method2 py.Child.Method2
-func (c *Child) Method2() *py.Object
-```
-缺点（用户视角）：
-- 无法查看该类的继承关系，认为该类无父类
-- 代码冗余，一些方法在其他结构体中也可以找到
-
