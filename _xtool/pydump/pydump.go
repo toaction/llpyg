@@ -20,7 +20,7 @@ var pyFuncTypes = map[string]bool{
 	"_ArrayFunctionDispatcher":   true,
 }
 
-var pyVarTypes = map[string]struct{}{
+var pyDataTypes = map[string]struct{}{
 	"int":      {},
 	"float":    {},
 	"complex":  {},
@@ -114,7 +114,7 @@ func pydump(moduleName string) (*symbol.Module, error) {
 			continue
 		}
 		// variables
-		if _, ok := pyVarTypes[sym.Type]; ok {
+		if _, ok := pyDataTypes[sym.Type]; ok {
 			modInstance.Variables = append(modInstance.Variables, sym)
 			continue
 		}

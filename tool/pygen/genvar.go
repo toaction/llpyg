@@ -1,12 +1,11 @@
 package pygen
 
 import (
-	"github.com/goplus/gogen"
 	"go/ast"
 	"go/token"
+	"github.com/goplus/gogen"
 	"github.com/goplus/llpyg/symbol"
 )
-
 
 func (ctx *context) genVars(pkg *gogen.Package, syms []*symbol.Symbol) {
 	names := make(map[string]struct{})
