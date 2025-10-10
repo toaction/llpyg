@@ -133,10 +133,10 @@ func TestGoModuleUtils(t *testing.T) {
 	}
 	err = goModTidy(tempDir)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 	err = codeFormat(tempDir)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 }
