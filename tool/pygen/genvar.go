@@ -25,6 +25,7 @@ func (ctx *context) genVars(pkg *gogen.Package, syms []*symbol.Symbol) {
 	}
 }
 
+// current can not get variable comment, see https://github.com/goplus/llpyg/issues/43
 func (ctx *context) genVar(pkg *gogen.Package, sym *symbol.Symbol, goName string) {
 	def := pkg.NewVarDefs(pkg.Types.Scope())
 	// linkname
@@ -32,6 +33,6 @@ func (ctx *context) genVar(pkg *gogen.Package, sym *symbol.Symbol, goName string
 	goLinkname := "//go:linkname " + goName + " py." + sym.Name
 	docList = append(docList, &ast.Comment{Text: goLinkname})
 	def.SetComments(&ast.CommentGroup{List: docList})
-	// new
+
 	def.New(token.NoPos, ctx.objPtr, goName)
 }
