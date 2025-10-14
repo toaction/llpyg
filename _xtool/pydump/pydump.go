@@ -82,9 +82,6 @@ func pydump(moduleName string) (*symbol.Module, error) {
 	}
 	// get object dict
 	keys := mod.ModuleGetDict().DictKeys()
-	if keys == nil {
-		return nil, fmt.Errorf("failed to get dict keys of %s", moduleName)
-	}
 	// create module instance
 	modInstance := &symbol.Module{
 		Name: moduleName,

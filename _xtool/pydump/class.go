@@ -3,26 +3,11 @@ package main
 import (
 	"fmt"
 	"strings"
-
 	"github.com/goplus/lib/c"
 	"github.com/goplus/lib/py"
 	"github.com/goplus/lib/py/inspect"
 	"github.com/goplus/llpyg/symbol"
 )
-
-// get builtins.dict function object
-// used for getting real dict of mappingproxy object (Python class __dict__)
-func getBuiltinDictFunc() (*py.Object, error) {
-	builtins := py.ImportModule(c.AllocaCStr("builtins"))
-	if builtins == nil {
-		return nil, fmt.Errorf("can't import builtins")
-	}
-	dictFunc := builtins.GetAttrString(c.Str("dict"))
-	if dictFunc == nil {
-		return nil, fmt.Errorf("can't get dict from builtins")
-	}
-	return dictFunc, nil
-}
 
 func parseClass(class *py.Object, sym *symbol.Symbol) (*symbol.Class, error) {
 	cls := &symbol.Class{
@@ -30,7 +15,7 @@ func parseClass(class *py.Object, sym *symbol.Symbol) (*symbol.Class, error) {
 		Doc:  sym.Doc,
 	}
 	// bases
-	bases, err := parseBases(class)
+	bases, err := parseBases(class, sym.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -44,10 +29,9 @@ func parseClass(class *py.Object, sym *symbol.Symbol) (*symbol.Class, error) {
 }
 
 // get class parents
-func parseBases(class *py.Object) ([]*symbol.Base, error) {
+func parseBases(class *py.Object, name string) ([]*symbol.Base, error) {
 	basesObj := class.GetAttrString(c.Str("__bases__")) // tuple
 	if basesObj == nil {
-		name := c.GoString(class.GetAttrString(c.Str("__name__")).CStr())
 		return nil, fmt.Errorf("can't get __bases__ from %s", name)
 	}
 	bases := make([]*symbol.Base, 0)
@@ -138,7 +122,7 @@ func parseMethod(val *py.Object, name string, typeName string, skipFirst bool) (
 	}
 	doc := val.GetAttrString(c.Str("__doc__"))
 	if doc != nil && doc.IsTrue() == 1 {
-		sym.Doc = c.GoString(doc.CStr())
+		sym.Doc = c.GoString(doc.Str().CStr())
 	}
 	sig, err := getSignature(val, sym, skipFirst)
 	if err != nil {
@@ -182,10 +166,9 @@ func getRealDictItems(class *py.Object, name string) (*py.Object, error) {
 	if dictTypeName != "mappingproxy" {
 		return nil, fmt.Errorf("__dict__ of %s is not a mappingproxy", name)
 	}
-	dictFunc, err := getBuiltinDictFunc()
-	if err != nil {
-		return nil, err
+	realDict := dict.CallMethod(c.Str("copy"), nil)
+	if realDict == nil {
+		return nil, fmt.Errorf("failed to copy real dict of %s", name)
 	}
-	realDict := dictFunc.CallOneArg(dict)
 	return realDict.DictItems(), nil
 }

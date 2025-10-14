@@ -30,7 +30,7 @@ type Property struct {
 type Class struct {
 	Name            string      `json:"name"`
 	Doc             string      `json:"doc"`
-	Bases           []*Base     `json:"base"`
+	Bases           []*Base     `json:"bases"`
 	InitMethod      *Symbol     `json:"initMethod"`
 	InstanceMethods []*Symbol   `json:"instanceMethods"` // include override special methods
 	ClassMethods    []*Symbol   `json:"classMethods"`
